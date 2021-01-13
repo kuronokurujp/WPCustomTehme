@@ -10,22 +10,13 @@
  */
 
 ?>
-
-	<footer id="colophon" class="site-footer">
-		<div class="site-info">
-			<a href="<?php echo esc_url( __( 'https://wordpress.org/', 'glsl-blog' ) ); ?>">
-				<?php
-				/* translators: %s: CMS name, i.e. WordPress. */
-				printf( esc_html__( 'Proudly powered by %s', 'glsl-blog' ), 'WordPress' );
-				?>
-			</a>
-			<span class="sep"> | </span>
-				<?php
-				/* translators: 1: Theme name, 2: Theme author. */
-				printf( esc_html__( 'Theme: %1$s by %2$s.', 'glsl-blog' ), 'glsl-blog', '<a href="http://underscores.me/">y-uchida</a>' );
-				?>
-		</div><!-- .site-info -->
-	</footer><!-- #colophon -->
+  <!-- Footer -->
+  <footer id="colophon" class="py-5 bg-black">
+    <div class="container">
+      <p class="m-0 text-center text-white small">Copyright &copy; tonakaiJP 2021</p>
+    </div>
+    <!-- /.container -->
+  </footer>
 </div><!-- #page -->
 
 <?php wp_footer(); ?>
