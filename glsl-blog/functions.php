@@ -7,6 +7,20 @@
  * @package glsl-blog
  */
 
+// 初期関数をフック
+add_action('init', function() {
+	// 一覧で表示する日記が特殊表示対応が必要なのでカスタム投稿で用意
+	register_post_type('custom_diary', [
+		'label' => '日記',
+		'public' => true,
+		'menu_position' => 5,
+		'has_archive' => true,
+		// RESTAPIを使えるようにする事で、投稿エディターを新しいタイプにする事ができる
+		'show_in_rest' => true,
+		'supports' => ['thumbnail', 'title', 'editor', 'custom-fields'],
+	]);
+});
+
 if ( ! defined( '_S_VERSION' ) ) {
 	// Replace the version number of the theme on each release.
 	define( '_S_VERSION', '1.0.0' );

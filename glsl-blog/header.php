@@ -18,11 +18,10 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="profile" href="https://gmpg.org/xfn/11">
 
-	<title><?php the_title(); ?></title>
+	<title><?php bloginfo('name'); ?></title>
 
 	<!-- Bootstrap core CSS -->
-	<?php // cssの改造があるかも知れないのでminは使わない。使うとしても公開準備が整ってからかな ?>
-	<link href="<?php echo get_template_directory_uri(); ?> /vendor/bootstrap/css/bootstrap.css" rel="stylesheet">
+	<link href="<?php echo get_template_directory_uri(); ?> /vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 
 	<!-- Custom fonts for this template -->
 	<link href="//fonts.googleapis.com/css?family=Catamaran:100,200,300,400,500,600,700,800,900" rel="stylesheet">
