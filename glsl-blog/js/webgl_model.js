@@ -1,47 +1,97 @@
 /**
  * WegGL画面のモデル
  */
-
-// TODO: ロードするキャンバスリストを定義して、読み込むなどをするかも
 class WebGLModel {
-    constructor(js_filepath) {
-        this.readyFlag = false;
-        this.canvas = null;
-        this.context = null;
-        this.js_filepath = js_filepath;
+    constructor(js_root_file_path, canvas_names, data_container) {
+        this.js_root_file_path = js_root_file_path;
+        this.canvas_names = canvas_names;
+        this.load_canvas_flag = false;
+        this.canvas3D = null;
+        this.canvas3D_scripts = [];
+        this.load_canvas_name = '';
+        this.data_container = data_container;
     }
 
-    init(canvasID) {
-        this.canvas = document.getElementById(canvasID);
-        // memo:
-        // どうも2dコンテキストを使うとwebglのサポートができなくなるようだ
-        // つまり一つのコンテキストしか使えないということになる
-        //this.context = this.canvas.getContext('2d');
-        /*
-        // 挙動テスト: canvas色が変わるかどうか
-        this.context.fillStyle = "blue";
-        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        */
-
+    init() {
         // ベースCanvasのjsファイルをロード
         return new Promise((resolve) => {
-            common_module.loadScript(this.js_filepath + '/js/webgl/canvas/canvas3D.js')
-            .then(() => {
-                this.readyFlag = true;
-                resolve();
-            });
+            common_module.loadScript(this.js_root_file_path + '/js/webgl/canvas/canvas3D.js')
+                .then((loadScript) => {
+                    resolve();
+                });
         });
     }
 
-    loadCanvas3D() {
-        if (!this.readyFlag)
-            return null;
+    /**
+     * キャンバス名前リストからキャンバス名を取得
+     * @param {*} index 
+     */
+    getCanvasNameFromCanvasNameList(index) {
+        return this.canvas_names[index];
+    }
 
-        // TODO: 指定したキャンバスをロードする
-        // TODO: 古いキャンバスは破棄する
+    /**
+     * 指定キャンバス名でロードされているか返す
+     * @param {*} canvas_name 
+     */
+    isLoadCanvas(canvas_name) {
+        return (this.load_canvas_name == canvas_name);
+    }
+
+    /**
+     * 指定した名前のキャンバスをロード
+     * @param {*} canvas_name 
+     */
+    loadCanvas3D(canvas_name) {
+        this.load_canvas_name = canvas_name;
 
         return new Promise((resolve) => {
-            resolve(new Canvas3D(this.js_filepath + '/js/webgl/canvas/basic'));
+
+            // 指定したキャンバスをロードする
+            const load_script_file_path = this.js_root_file_path + '/js/webgl/canvas/' + this.load_canvas_name + '/canvas3D.js';
+
+            // クラス名を取得
+            const className = this.load_canvas_name.slice(4);
+
+            // すでにロード済みかチェック
+            if (!this.canvas3D_scripts.includes(load_script_file_path)) {
+                // ロードされていない場合はロードする
+                var load_js_file_promise = new Promise((resolve) => {
+                    common_module.loadScript(load_script_file_path)
+                        .then((loadScript) => {
+                            this.canvas3D_scripts.push(load_script_file_path);
+                            resolve();
+                        });
+                });
+
+                load_js_file_promise.then(() => {
+                    var class_declaration = common_module.getClass(className);
+                    this.canvas3D = new class_declaration(this.js_root_file_path + '/js/webgl/canvas/' + canvas_name, this.data_container);
+                    resolve(this.canvas3D);
+                });
+            }
+            else {
+                var class_declaration = common_module.getClass(className);
+                this.canvas3D = new class_declaration(this.js_root_file_path + '/js/webgl/canvas/' + canvas_name, this.data_container);
+                resolve(this.canvas3D);
+            }
+        });
+    }
+
+    /**
+     * モデルのキャンバスデータを破棄
+     */
+    releaseCanvas3D() {
+        return new Promise((reslove) => {
+            if (this.canvas3D != null)
+                this.canvas3D.dispose();
+
+            common_module.freeObject(this.canvas3D);
+            this.canvas3D = null;
+
+            this.data_container.release();
+
+            reslove();
         });
     }
 }

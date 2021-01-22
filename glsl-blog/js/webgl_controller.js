@@ -2,36 +2,83 @@
  * WebGL画面の制御
  */
 
- // TODO: 指定キャンバスを設定してWebGLを実行
+// 指定キャンバスを設定してWebGLを実行
 class WebGLController {
     constructor(model, view) {
         this.model = model;
         this.view = view;
+        this.loading_show = false;
     }
 
-    init(canvasID) {
-        this.model.init(canvasID)
-        .then(() => {
-            console.log('ctrl: init');
-            this.view.init(this.model.canvas);
+    /**
+     * 初期化
+     */
+    init(gl_context, canvas) {
+        return new Promise((reslove) => {
+            this.view.init(gl_context, canvas);
 
-            this.show();
+            this.model.init()
+                .then(() => {
+                    // 初期画面を表示
+                    var showAction = this.actionShow(this.model.getCanvasNameFromCanvasNameList(0));
+                    if (showAction != null) {
+                        showAction
+                            .then(() => {
+                                reslove();
+                            });
+                    }
+                    else {
+                        reslove();
+                    }
+                });
         });
     }
 
-    show() {
-        // TODO: canvasにwegglの描画更新をする
-        let promise = this.model.loadCanvas3D();
-        // モデルの利用出来ないとnullになる
-        if (promise == null)
-            return;
+    /**
+     * 描画実行
+     */
+    actionShow(canvasName) {
+        if (this.loading_show) {
+            return null;
+        }
 
-        promise.then((canvas) => {
-            this.view.load(canvas)
-            .then(() => {
-                this.view.setup();
-                this.view.update();
-                this.view.render();
+        // ロード指定したのがすでにロードされているかチェックしてロードしているなら何もしない
+        if (this.model.isLoadCanvas(canvasName)) {
+            return null;
+        }
+
+        return new Promise((reslove) => {
+            this.loading_show = true;
+
+            this.view.disable();
+
+            // キャンバスをViewから外す
+            this.view.detachCanvas(this.model.canvas3D).then(() => {
+                // ロードしたキャンバスがあれば破棄する
+                this.model.releaseCanvas3D()
+                    .then(() => {
+                        // Viewにアタッチするキャンバスをロード生成
+                        let promise = this.model.loadCanvas3D(canvasName);
+                        // ロードに失敗した
+                        if (promise == null) {
+                            this.loading_show = false;
+                            return;
+                        }
+
+                        // ロードが成功したらWebGLでレンダリングする
+                        promise.then((canvas) => {
+                            this.view.attachCanvas(canvas)
+                                .then(() => {
+                                    this.view.enable(false);
+                                    this.view.update();
+                                    this.view.render();
+
+                                    this.loading_show = false;
+
+                                    reslove();
+                                });
+                        });
+                    });
             });
         });
     }

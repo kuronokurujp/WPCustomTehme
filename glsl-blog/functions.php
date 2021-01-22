@@ -192,3 +192,9 @@ if ( defined( 'JETPACK__VERSION' ) ) {
 	require get_template_directory() . '/inc/jetpack.php';
 }
 
+/**
+ * カスタム投稿タイプ「日記」のカスタムフィールド
+ */
+require_once get_template_directory() . '/inc/custom_field/custom_field_dairy_thumbnail.php';
+
+$test = 'test';
