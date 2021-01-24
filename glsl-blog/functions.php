@@ -9,7 +9,18 @@
 
 // 初期関数をフック
 add_action('init', function() {
-	// 一覧で表示する日記が特殊表示対応が必要なのでカスタム投稿で用意
+	// 前書き投稿
+	register_post_type('custom_prefact', [
+		'label' => '前書き',
+		'public' => true,
+		'menu_position' => 4,
+		'has_archive' => true,
+		// RESTAPIを使えるようにする事で、投稿エディターを新しいタイプにする事ができる
+		'show_in_rest' => true,
+		'supports' => ['thumbnail', 'title', 'editor'],
+	]);
+
+	// 講座投稿
 	register_post_type('custom_diary', [
 		'label' => '日記',
 		'public' => true,
@@ -18,6 +29,17 @@ add_action('init', function() {
 		// RESTAPIを使えるようにする事で、投稿エディターを新しいタイプにする事ができる
 		'show_in_rest' => true,
 		'supports' => ['thumbnail', 'title', 'editor', 'custom-fields'],
+	]);
+
+	// あとがき投稿
+	register_post_type('custom_afterword', [
+		'label' => '後書き',
+		'public' => true,
+		'menu_position' => 6,
+		'has_archive' => true,
+		// RESTAPIを使えるようにする事で、投稿エディターを新しいタイプにする事ができる
+		'show_in_rest' => true,
+		'supports' => ['thumbnail', 'title', 'editor'],
 	]);
 });
 
@@ -196,5 +218,3 @@ if ( defined( 'JETPACK__VERSION' ) ) {
  * カスタム投稿タイプ「日記」のカスタムフィールド
  */
 require_once get_template_directory() . '/inc/custom_field/custom_field_dairy_thumbnail.php';
-
-$test = 'test';

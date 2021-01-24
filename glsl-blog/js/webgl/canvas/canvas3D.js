@@ -41,4 +41,11 @@ class Canvas3D {
      * 描画後処理
      */
     afterRender(time) {}
+
+    /**
+     * マウス移動した場合に呼び出されるアクション
+     * マウス座標は正規化デバイス座標系として引数から受け取れる
+     */
+    actionMoveMouse(xNDC, yNDC) {
+    }
 }

@@ -474,7 +474,7 @@ class WebGLView {
         this.begin_time = 0;
 
         // アニメーションレンダリングするかどうか
-        this.animation_rendering = false;
+        this.animation_rendering = true;
 
         this.enable_flag = false;
     }

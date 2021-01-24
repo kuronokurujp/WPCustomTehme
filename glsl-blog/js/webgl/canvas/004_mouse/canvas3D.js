@@ -2,164 +2,147 @@
  * 頂点位置をマウスで移動
  */
 class mouse extends Canvas3D {
+    constructor(data_file_path, webGL_data_container) {
+        super(data_file_path, webGL_data_container);
+
+        this.shader_frame_name = 'mouse';
+
+        // VBO作成する情報リスト
+        this.vbo_datas = {
+            positions: {
+                name: 'position',
+                stride_count: 3,
+                datas: [
+                    // XYZの座標
+                    0, 0, 0,
+                    0, 0.5, 0,
+                    0, -0.5, 0,
+                    -0.5, 0, 0,
+                    0.5, 0, 0,
+
+                ],
+            },
+
+            colors: {
+                name: 'color',
+                stride_count: 4,
+                datas: [
+                    1, 0, 0, 1,
+                    0, 0, 1, 1,
+                    0, 0, 1, 1,
+                    0, 0, 1, 1,
+                    0, 0, 1, 1,
+                ],
+            },
+
+            point_sizes: {
+                name: 'pointSize',
+                stride_count: 1,
+                datas: [
+                    16,
+                    16,
+                    16,
+                    16,
+                    16,
+                ],
+            }
+        };
+
+        // uniformを作成するデータ
+        this.uniform_datas = {
+            global_color: {
+                name: 'globalColor',
+                type: 'uniform4fv',
+                datas: [1, 1, 1, 1],
+            },
+            mouse_position: {
+                name: 'mouse',
+                type: 'uniform2fv',
+                datas: [0.0, 0.0]
+            }
+        };
+    }
+
     /**
-     * 設定
-     * @param {*} shaderProgram 
-     * @param {*} gl 
-     * @param {*} canvas 
+     * ロード
      */
-    setup(shaderProgram, gl, canvas) {
-        super.setup(shaderProgram, gl, canvas);
+    load() {
+        return new Promise((reslove) => {
+            this.webGL_data_container.createShaderFrame(
+                this.shader_frame_name,
+                this.data_file_path + '/vs1.vert',
+                this.data_file_path + '/fs1.frag'
+            ).then((shader_frame) => {
 
-        this.mouseX = 0;
-        this.mouseY = 0;
+                for (let key in this.vbo_datas) {
+                    let location = this.vbo_datas[key];
 
-        window.addEventListener('mousemove', (evt) => {
-            // マウスの座標XY
-            let x = evt.clientX;
-            let y = evt.clientY;
+                    shader_frame.createVBOAttributeData(
+                        location.name,
+                        location.stride_count,
+                        location.datas);
+                };
 
-            const width = canvas.width;
-            const height = canvas.height;
+                // uniform作成
+                const color_uniform_data = this.uniform_datas.global_color;
+                shader_frame.createUniformObject(color_uniform_data.name, color_uniform_data.type);
 
-            // 正規化デバイス座標系に変換
-            // サイトで図付きで説明して分かりやすい
-            // https://sbfl.net/blog/2016/09/05/webgl2-tutorial-3d-knowledge/#:~:text=%E6%AD%A3%E8%A6%8F%E5%8C%96%E3%83%87%E3%83%90%E3%82%A4%E3%82%B9%E5%BA%A7%E6%A8%99%EF%BC%88Normalized%20Device%20Coordinates%2C%20NDC%EF%BC%89&text=%E6%AD%A3%E8%A6%8F%E5%8C%96%E3%83%87%E3%83%90%E3%82%A4%E3%82%B9%E5%BA%A7%E6%A8%99%E3%81%AF,%E3%82%92%E6%8E%A1%E7%94%A8%E3%81%97%E3%81%A6%E3%81%84%E3%81%BE%E3%81%99%E3%80%82 
+                const mouse_uniform_data = this.uniform_datas.mouse_position;
+                shader_frame.createUniformObject(mouse_uniform_data.name, mouse_uniform_data.type);
 
-            // 一つ一つ計算を分解して座標変換する
-            // わかりやすさ重視
-            // ①スクリーン画面を画面半分左上にずらす
-            // この計算で画面の左上が(-w/2, -h/2), 真ん中が(0, 0),右下が(w/2, h/2)を基準にした座標変換
-            const sliceX = x - (width / 2);
-            const sliceY = y - (height / 2);
-
-            // ②画面半分の値で割る
-            // この計算で画面の左上が(-1, -1), 真ん中が(0, 0),右下が(1, 1)を基準にした座標変換
-            const divX = sliceX / (width / 2);
-            const divY = sliceY / (height / 2);
-
-            // ③x座標に*1, y座標に-1にする
-            // この計算で画面の左上が(-1, 1), 真ん中が(0, 0),右下が(1, -1)を基準にした座標変換
-            this.mouseX = divX * 1;
-            this.mouseY = divY * -1;
+                reslove();
+            });
         });
     }
 
-    isRenderAnimation() {
-        return true;
+    /**
+     * メモリやオブジェクトの解放
+     */
+    dispose() {
+        this.webGL_data_container = null;
+
+        common_module.freeObject(this.vbo_datas);
+        this.vbo_datas = null;
+
+        common_module.freeObject(this.uniform_datas);
+        this.uniform_datas = null;
     }
 
     /**
-     * 頂点シェーダーファイル
+     * 描画
      */
-    getVertexShaderFilePath() {
-        return './vs1.vert';
+    render(gl, time) {
+        let shader_frame = this.webGL_data_container.getShaderFrame(this.shader_frame_name);
+
+        // シェーダー有効化
+        shader_frame.use();
+
+        // VBO更新
+        shader_frame.updateVertexAttribute();
+        // Uniformロケーションにデータ設定
+        {
+            const color_uniform_data = this.uniform_datas.global_color;
+            shader_frame.setUniformData(color_uniform_data.name, color_uniform_data.datas);
+
+            const mouse_uniform_data = this.uniform_datas.mouse_position;
+
+            shader_frame.setUniformData(mouse_uniform_data.name, mouse_uniform_data.datas);
+        }
+
+        // 描画実行
+        const positions = this.vbo_datas.positions;
+
+        // ポイントスプライトなので第3引数に表示する点の数を指定
+        gl.drawArrays(gl.POINT, 0, positions.datas.length / positions.stride_count);
     }
 
     /**
-     * ピクセルシェーダーファイル
+     * マウス移動した場合に呼び出されるアクション
+     * マウス座標は正規化デバイス座標系として引数から受け取れる
      */
-    getFragmentShaderFilePath() {
-        return './fs1.frag';
-    }
-
-    /**
-     * 頂点シェーダーの変数
-     */
-    getAttributeLoactions() {
-        return [
-            this.gl.getAttribLocation(this.shaderProgram, 'position'),
-            this.gl.getAttribLocation(this.shaderProgram, 'color'),
-            this.gl.getAttribLocation(this.shaderProgram, 'pointSize'),
-        ];
-    }
-
-    /**
-     * 頂点シェーダーの変数要素数
-     */
-    getAttributeStrides() {
-        return [
-            3,
-            4,
-            1,
-        ];
-    }
-
-    /**
-     * Uniformの変数
-     */
-    getUniformLocations() {
-        return [
-            this.gl.getUniformLocation(this.shaderProgram, 'globalColor'),
-            this.gl.getUniformLocation(this.shaderProgram, 'mouse'),
-        ]
-    }
-
-    /**
-     * Uniformの変数のタイプ
-     */
-    getUniformTypes() {
-        return [
-            'uniform4fv',
-            'uniform2fv',
-        ];
-    }
-
-    /**
-     * Uniformに渡す値
-     */
-    getUniformLocationsValues(time) {
-        return [
-            [1, 1, 1, 1],
-            [this.mouseX, this.mouseY]
-        ];
-    }
-
-
-    /**
-     * 頂点シェーダーに渡す属性値リスト
-     */
-    getOtherVertexAttributes() {
-        return [
-            this.getPointColors(),
-            this.getPointSizes(),
-        ];
-    }
-
-    getPointSizes() {
-        return [
-            16,
-            16,
-            16,
-            16,
-            16,
-        ]
-    }
-
-    /**
-     * 頂点シェーダーがあつかう頂点座標
-     */
-    getPositions() {
-        return [
-            // XYZの座標
-            0,      0,      0,
-            0,      0.5,    0,
-            0,      -0.5,   0,
-            -0.5,   0,      0,
-            0.5,    0,      0,
-        ];
-    }
-
-    /**
-     * 頂点シェーダーの頂点色
-     */
-    getPointColors() {
-        return [
-            1, 0, 0, 1,
-            0, 0, 1, 1,
-            0, 0, 1, 1,
-            0, 0, 1, 1,
-            0, 0, 1, 1,
-        ];
+    actionMoveMouse(xNDC, yNDC) {
+        const mouse_uniform_data = this.uniform_datas.mouse_position;
+        mouse_uniform_data.datas[0] = xNDC;
+        mouse_uniform_data.datas[1] = yNDC;
     }
 }

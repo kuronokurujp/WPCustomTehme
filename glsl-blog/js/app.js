@@ -20,8 +20,9 @@ window.addEventListener('DOMContentLoaded', () => {
     ]).then((loadScripts) => {
         const container = new WebGLDataContainer('js-webgl-canvas');
         const view = new WebGLView();
-        const model = new WebGLModel(g_app_model.js_root_path, g_app_model.canvas_names, container);
-        webgl_controller_instance = new WebGLController(model, view, g_app_model.js_root_path);
+        const viewModel = new WebGLModel.createViewModel(g_app_model.js_root_path, g_app_model.canvas_names, container);
+        const mouseModel = new WebGLModel.createMouseModel(container.canvas);
+        webgl_controller_instance = new WebGLController(viewModel, mouseModel, view);
         webgl_controller_instance.init(container.gl_context, container.canvas)
             .then(() => {
                 // js-canvas-thumbnail-imgのID要素が複数ある。
@@ -34,7 +35,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         if (value_match != null) {
                             // 文字列に"がついているので削除
                             const canvas_name = value_match[1].replace('value=', '').replace(/"/g, '');
-                            webgl_controller_instance.show(canvas_name);
+                            webgl_controller_instance.actionShow(canvas_name);
                         }
                     }, false);
                 });
@@ -44,8 +45,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 const back_view_off_button = document.getElementById('js_back_off_view_button');
                 const dairy_views = document.getElementsByClassName('js_dairy_view');
 
+                let view_flag = false;
                 if (back_view_on_button != null) {
                     back_view_on_button.onclick = function () {
+                        view_flag = true;
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'none';
                         }
@@ -57,6 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (back_view_off_button != null) {
                     back_view_off_button.onclick = function () {
+                        view_flag = false;
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'block';
                         }
@@ -66,7 +70,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     throw new Error('back off view button element dont have');
                 }
 
-                // TODO: マウス移動イベント登録(シェーダーにマウス座標を渡すケースに対応)
+                // マウス移動イベント登録(シェーダーにマウス座標を渡すケースに対応)
+                window.addEventListener('mousemove', (evt) => {
+                    if (view_flag)
+                        webgl_controller_instance.actionMouseMove(evt);
+                });
             });
     });
 });

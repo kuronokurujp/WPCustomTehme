@@ -4,8 +4,9 @@
 
 // 指定キャンバスを設定してWebGLを実行
 class WebGLController {
-    constructor(model, view) {
-        this.model = model;
+    constructor(viewModel, mouseModel, view) {
+        this.viewModel = viewModel;
+        this.mouseModel = mouseModel;
         this.view = view;
         this.loading_show = false;
     }
@@ -17,10 +18,10 @@ class WebGLController {
         return new Promise((reslove) => {
             this.view.init(gl_context, canvas);
 
-            this.model.init()
+            this.viewModel.init()
                 .then(() => {
                     // 初期画面を表示
-                    var showAction = this.actionShow(this.model.getCanvasNameFromCanvasNameList(0));
+                    var showAction = this.actionShow(this.viewModel.getCanvasNameFromCanvasNameList(0));
                     if (showAction != null) {
                         showAction
                             .then(() => {
@@ -43,7 +44,7 @@ class WebGLController {
         }
 
         // ロード指定したのがすでにロードされているかチェックしてロードしているなら何もしない
-        if (this.model.isLoadCanvas(canvasName)) {
+        if (this.viewModel.isLoadCanvas(canvasName)) {
             return null;
         }
 
@@ -53,12 +54,12 @@ class WebGLController {
             this.view.disable();
 
             // キャンバスをViewから外す
-            this.view.detachCanvas(this.model.canvas3D).then(() => {
+            this.view.detachCanvas(this.viewModel.canvas3D).then(() => {
                 // ロードしたキャンバスがあれば破棄する
-                this.model.releaseCanvas3D()
+                this.viewModel.releaseCanvas3D()
                     .then(() => {
                         // Viewにアタッチするキャンバスをロード生成
-                        let promise = this.model.loadCanvas3D(canvasName);
+                        let promise = this.viewModel.loadCanvas3D(canvasName);
                         // ロードに失敗した
                         if (promise == null) {
                             this.loading_show = false;
@@ -69,7 +70,8 @@ class WebGLController {
                         promise.then((canvas) => {
                             this.view.attachCanvas(canvas)
                                 .then(() => {
-                                    this.view.enable(false);
+                                    // アニメーション更新を有効にする
+                                    this.view.enable(true);
                                     this.view.update();
                                     this.view.render();
 
@@ -80,6 +82,20 @@ class WebGLController {
                         });
                     });
             });
+        });
+    }
+
+    /**
+     * マウス移動イベントアクション
+     */
+    actionMouseMove(mouseMoveEventData) {
+        // マウス移動によるモデル内のデータ更新
+        this.mouseModel.move(mouseMoveEventData);
+        // 更新されたモデルを使ってビューにマウス移動結果を伝達
+        this.view.canvas3Ds.forEach((canvas3D) => {
+            const mouseModel = this.mouseModel;
+            // 正規化デバイス座標系になっているのマウス座標を渡す
+            canvas3D.actionMoveMouse(mouseModel.mouseX, mouseModel.mouseY);
         });
     }
 }

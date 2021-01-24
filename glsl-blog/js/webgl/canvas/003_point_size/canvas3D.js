@@ -5,7 +5,7 @@ class point_size extends Canvas3D {
     constructor(data_file_path, webGL_data_container) {
         super(data_file_path, webGL_data_container);
 
-        this.shader_frame_name = 'vertex_color';
+        this.shader_frame_name = 'point_size';
 
         // VBO作成する情報リスト
         this.vbo_datas = {
