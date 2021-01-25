@@ -144,13 +144,13 @@ class ShaderFrame {
     /**
      * インデックスバッファオブジェクト作成
      */
-    createIndexBufferObject(point_index) {
+    createIndexBufferObject(buffer_name, point_index) {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialized');
         }
 
-        this.index_buffer_objects.push(this._createIndexBufferObject(point_index));
+        this.index_buffer_objects[buffer_name] = this._createIndexBufferObject(point_index);
     }
 
     /**
@@ -171,20 +171,19 @@ class ShaderFrame {
      */
     updateVertexAttribute() {
         this._setVertexAttribute(
-            this.vertex_buffer_objects,
-            this.index_buffer_objects);
+            this.vertex_buffer_objects);
     }
 
     /**
-     * インデックスバッファのみ指定して
-     * 残りはクラス内で持っているVBOとATTRを渡す
+     * VBOとインデックスバッファを更新
      */
-    updateVertexAttribute(
-        index_buffer_object
+    updateVertexAttributeAndIndexBuffer(
     ) {
         this._setVertexAttribute(
             this.vertex_buffer_objects,
-            index_buffer_object);
+        );
+
+        this._setIndexBuffer(this.index_buffer_objects);
     }
 
     /**
@@ -207,7 +206,7 @@ class ShaderFrame {
         // uniformTypeが行列かどうかチェックして行列なら専用設定をする
         if (type.includes('Matrix') === true) {
             // 行列は配列の要素が１つのみ
-            gl[type](uniform_data.location, false, value[0]);
+            gl[type](uniform_data.location, false, value);
         }
         else {
             gl[type](uniform_data.location, value);
@@ -289,10 +288,21 @@ class ShaderFrame {
                 false,
                 0, 0);
         }
+    }
 
-        // indexバッファがあれば設定
-        if (index_buffer_object != null) {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer_object);
+    /**
+     * インデックスバッファを設定
+     * あらかじめ作成したそれぞれのインデックスバッファをバインドする
+     */
+    _setIndexBuffer(index_buffer_objects) {
+        const gl = this.gl_context;
+        if (gl == null) {
+            throw new Error('webgl not initialized');
+        }
+
+        for (let key in index_buffer_objects) {
+            const buffer = index_buffer_objects[key];
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
         }
     }
 

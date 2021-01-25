@@ -17,11 +17,12 @@ window.addEventListener('DOMContentLoaded', () => {
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl_model.js'),
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/math.js'),
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/frame.js'),
+        common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/camera_controller.js'),
     ]).then((loadScripts) => {
         const container = new WebGLDataContainer('js-webgl-canvas');
         const view = new WebGLView();
-        const viewModel = new WebGLModel.createViewModel(g_app_model.js_root_path, g_app_model.canvas_names, container);
-        const mouseModel = new WebGLModel.createMouseModel(container.canvas);
+        const viewModel = WebGLModel.createViewModel(g_app_model.js_root_path, g_app_model.canvas_names, container);
+        const mouseModel = WebGLModel.createMouseModel(container.canvas);
         webgl_controller_instance = new WebGLController(viewModel, mouseModel, view);
         webgl_controller_instance.init(container.gl_context, container.canvas)
             .then(() => {
@@ -71,9 +72,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // マウス移動イベント登録(シェーダーにマウス座標を渡すケースに対応)
-                window.addEventListener('mousemove', (evt) => {
-                    if (view_flag)
-                        webgl_controller_instance.actionMouseMove(evt);
+                container.canvas.addEventListener('mousemove', (evt) => {
+                    webgl_controller_instance.actionMouseMove(evt);
                 });
             });
     });
