@@ -268,16 +268,15 @@ class ShaderFrame {
      * VBOの設定
      */
     _setVertexAttribute(
-        vertex_buffer_objects,
-        index_buffer_object) {
+        vertex_buffer_objects) {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialized');
         }
 
         // VBO配列からVBOを有効化して情報設定
-        for (let key in this.vertex_buffer_objects) {
-            let vertex_buffer_object = this.vertex_buffer_objects[key];
+        for (let key in vertex_buffer_objects) {
+            let vertex_buffer_object = vertex_buffer_objects[key];
 
             gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer_object.datas);
             gl.enableVertexAttribArray(vertex_buffer_object.location);
@@ -287,6 +286,7 @@ class ShaderFrame {
                 gl.FLOAT,
                 false,
                 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
         }
     }
 
@@ -302,6 +302,7 @@ class ShaderFrame {
 
         for (let key in index_buffer_objects) {
             const buffer = index_buffer_objects[key];
+            // バインドしたままでないとインデックスバッファを参照しない
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
         }
     }
@@ -379,7 +380,17 @@ class ShaderFrame {
  */
 class TextureFrame {
     constructor(gl, texture_slot) {
+        if (gl == null) {
+            throw new Error('webgl not initialized');
+        }
+
         this.gl = gl;
+
+        // スロットが使用範囲内かチェック
+        const texture_max_slot = this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+        if (texture_max_slot < texture_slot)
+            throw new Error('texture slot max(' + texture_max_slot + ') <  input slot(' + texture_slot + ')');
+
         this.texture_slot = texture_slot;
         this.active_texture = null;
     }
@@ -399,6 +410,7 @@ class TextureFrame {
         return new Promise((resolve) => {
             const img = new Image();
             // ファイル開始(失敗時は対応していない)
+            // TODO: ファイルロード失敗した時の対応が必要
             img.addEventListener('load', () => {
 
                 // ファイルロード成功
@@ -434,37 +446,44 @@ class TextureFrame {
      * リソースを解放
      */
     dispose() {
-        // TODO: 中身を作る
-    }
-
-    /**
-     * テクスチャスロットを有効
-     * @param {*} enable 
-     */
-    enableSlot() {
         const gl = this.gl;
 
-        // ロードしたテクスチャをバインド
-        // 0 - 最大数までテクスチャをアクティブにできる
-        // モバイル端末では最大あ8枚までらしい
-        gl.activeTexture(gl.TEXTURE0 + this.texture_slot);
+        if (this.active_texture != null) {
+            gl.activeTexture(gl.TEXTURE0 + this.texture_slot);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.bindTexture(gl.TEXTURE_CUBE_MAP, null);
+
+            if (gl.isTexture(this.active_texture)) {
+                gl.deleteTexture(this.active_texture);
+                this.active_texture = null;
+            }
+        }
+
+        this.gl = null;
     }
 
     /**
-     * テクスチャをバインドするか設定
+     * テクスチャのスロットをアクティブにしてロードしたテクスチャをバインド設定
      * @param {*} enable 
      */
-    enableBind(enable) {
+    enableBindTexture(enable) {
         if (this.active_texture == null)
             return;
 
         const gl = this.gl;
 
-        gl.bindTexture(gl.TEXTURE_2D, null);
+        // 制御するテクスチャースロットを有効化
+        // 0 - 最大数までテクスチャをアクティブにできる
+        // モバイル端末では最大8枚までらしい
+        gl.activeTexture(gl.TEXTURE0 + this.texture_slot);
+
         if (enable === true) {
-            // MEMO:
-            // テクスチャをバインドした時にテクスチャユニット何番にバインドされる？
+            // ロードしたテクスチャをバインド
+            // 直前のactiveTextureで有効にしたスロットにバインドされる
             gl.bindTexture(gl.TEXTURE_2D, this.active_texture);
+        }
+        else {
+            gl.bindTexture(gl.TEXTURE_2D, null);
         }
     }
 }
@@ -740,13 +759,13 @@ class WebGLDataContainer {
     /**
      * シェーダーで利用するテクスチャをファイルパス指定でロード
      */
-    createTextures(name, texture_file_path) {
+    createTextures(name, texture_slot, texture_file_path) {
         return new Promise((resolve) => {
-            let texture_frame = new TextureFrame(this.gl_context, index);
+            let texture_frame = new TextureFrame(this.gl_context, texture_slot);
             texture_frame.loadFromFile(texture_file_path)
                 .then((tex) => {
                     this.textures[name] = tex;
-                    resolve();
+                    resolve(this.textures[name]);
                 });
         });
     }

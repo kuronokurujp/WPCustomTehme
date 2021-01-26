@@ -8,27 +8,6 @@ class polygon extends Canvas3D {
 
         this.shader_frame_name = 'polygon';
 
-        this.is_face = true;
-        {
-            // 調整パネルGUIの入力イベント作成
-            /*
-                GUI製作ライブラリ「tweakpane」を利用
-                ありがとうございます！
-                https://github.com/cocopon/tweakpane
-            */
-            const pane_element = document.querySelector('#pane');
-            if (pane_element != null) {
-                const pane = new Tweakpane({
-                    container: pane_element
-                });
-
-                pane.addInput({ face: this.is_face }, 'face')
-                    .on('change', (v) => {
-                        this.is_face = v;
-                    });
-            }
-        }
-
         // 3Dカメラの制御
         this.mouseInterctionCamera = CameraController.createMouseInterction();
         this.mouseInterctionCamera.setup(webGL_data_container.canvas);
@@ -226,13 +205,7 @@ class polygon extends Canvas3D {
 
         // 転送情報を使用して頂点を画面にレンダリング
         // 第三引数に頂点数を渡している
-
-        if (this.is_face === false) {
-            gl.drawArrays(gl.POINTS, 0, this.vbo_datas.positions.length / this.vbo_datas.positions.stride_count);
-        }
-        else {
-            // インデックスバッファで描画
-            gl.drawElements(gl.TRIANGLES, this.idx_datas.length, gl.UNSIGNED_SHORT, 0);
-        }
+        // インデックスバッファで描画
+        gl.drawElements(gl.TRIANGLES, this.idx_datas.length, gl.UNSIGNED_SHORT, 0);
     }
 }

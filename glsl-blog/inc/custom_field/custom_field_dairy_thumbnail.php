@@ -10,7 +10,8 @@ require_once get_template_directory() . '/inc/custom_field/dairy_thumbnail_item.
  */
 class CustomFieldDairyThumbnail
 {
-    const FIELD_ITEM_MAX = 6;
+    // サムネイル最大数
+    const FIELD_ITEM_MAX = 10;
 
     /**
      * キャンバス名一覧を配列で取得

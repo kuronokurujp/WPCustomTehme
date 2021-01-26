@@ -12,15 +12,23 @@ class Canvas3D {
      * ここでシェーダーやテクスチャー生成する
      */
     load() {
-        return new Promise((resolve) => {
-            resolve();
-        });
+        // 絶対実装しないといけない箇所なので例外エラーをつける
+        let error_message = 'Canvas3D Class: No load method defined';
+
+        alert(error_message);
+        throw new Error(error_message);
     }
 
     /**
      * メモリやオブジェクトの解放
      */
-    dispose() {}
+    dispose() {
+        // 絶対実装しないといけない箇所なので例外エラーをつける
+        let error_message = 'Canvas3D Class: No dispose method defined';
+
+        alert(error_message);
+        throw new Error(error_message);
+    }
 
     /**
      * 更新
@@ -35,7 +43,13 @@ class Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {}
+    render(gl, time) {
+        // 絶対実装しないといけない箇所なので例外エラーをつける
+        let error_message = 'Canvas3D Class: No render method defined';
+
+        alert(error_message);
+        throw new Error(error_message);
+    }
 
     /**
      * 描画後処理

@@ -18,6 +18,14 @@ window.addEventListener('DOMContentLoaded', () => {
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/math.js'),
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/frame.js'),
         common_module.loadScript(g_app_model.js_root_path + '/js/webgl/libs/camera_controller.js'),
+        // 外部jsライブラリ
+        // パラメータ調整パネルGUIで下記のライブラリを使用
+        /*
+            GUI製作ライブラリ「tweakpane」を利用
+            ありがとうございます！
+            https://github.com/cocopon/tweakpane
+        */
+        common_module.loadScript(g_app_model.js_root_path + '/js/libs/twekapane/tweakpane-1.5.6.min.js'),
     ]).then((loadScripts) => {
         const container = new WebGLDataContainer('js-webgl-canvas');
         const view = new WebGLView();
@@ -46,6 +54,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 const back_view_off_button = document.getElementById('js_back_off_view_button');
                 const dairy_views = document.getElementsByClassName('js_dairy_view');
 
+                // canvasのパラメータ調整パーツ
+                const canvas_param_pane = document.getElementById('canvas_param_pane');
+
                 let view_flag = false;
                 if (back_view_on_button != null) {
                     back_view_on_button.onclick = function () {
@@ -53,6 +64,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'none';
                         }
+
+                        canvas_param_pane.style.display = 'block';
                     };
                 }
                 else {
@@ -65,6 +78,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'block';
                         }
+
+                        canvas_param_pane.style.display = 'none';
                     };
                 }
                 else {
