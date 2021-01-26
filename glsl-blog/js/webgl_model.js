@@ -56,9 +56,10 @@ let WebGLModel = {
         return new Mouse(canvas);
     },
 
+    /**
+     * モデル生成
+     */
     createViewModel: function (js_root_path, canvas_names, container) {
-
-
         /**
          * WegGL画面のモデル
          */
@@ -94,7 +95,6 @@ let WebGLModel = {
 
             /**
              * キャンバス名前リストからキャンバス名を取得
-             * @param {*} index 
              */
             getCanvasNameFromCanvasNameList(index) {
                 return this.canvas_names[index];
@@ -102,7 +102,6 @@ let WebGLModel = {
 
             /**
              * 指定キャンバス名でロードされているか返す
-             * @param {*} canvas_name 
              */
             isLoadCanvas(canvas_name) {
                 return (this.load_canvas_name == canvas_name);
@@ -110,7 +109,6 @@ let WebGLModel = {
 
             /**
              * 指定した名前のキャンバスをロード
-             * @param {*} canvas_name 
              */
             loadCanvas3D(canvas_name) {
                 this.load_canvas_name = canvas_name;
@@ -163,12 +161,6 @@ let WebGLModel = {
 
                     reslove();
                 });
-            }
-
-            /**
-             * マウス移動データ更新
-             */
-            updateMouseMove(mouseMoveEventData) {
             }
         }
 

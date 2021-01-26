@@ -1,7 +1,6 @@
 /**
  * 板ポリ表示
  * かつテクスチャを張り付けて表示
- * 移植は完了 => テストする
  */
 class texture extends Canvas3D {
     constructor(data_file_path, webGL_data_container) {

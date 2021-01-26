@@ -115,6 +115,10 @@ class ShaderFrame {
             throw new Error('webgl not initialized');
         }
 
+        if (attribute_name in this.vertex_buffer_objects) {
+            throw new Error('vertex buffer array name duplicate => ' + attribute_name);
+        }
+
         let location = gl.getAttribLocation(this.shader_program, attribute_name);
         let datas = this._createVertexBufferObject(data);
 
@@ -134,6 +138,10 @@ class ShaderFrame {
             throw new Error('webgl not initialized');
         }
 
+        if (uniform_name in this.uniform_objects) {
+            throw new Error('uniform object array name duplicate => ' + uniform_name);
+        }
+
         let location = gl.getUniformLocation(this.shader_program, uniform_name);
         this.uniform_objects[uniform_name] = {
             location: location,
@@ -148,6 +156,10 @@ class ShaderFrame {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialized');
+        }
+
+        if (buffer_name in this.index_buffer_objects) {
+            throw new Error('index buffer array name duplicate => ' + buffer_name);
         }
 
         this.index_buffer_objects[buffer_name] = this._createIndexBufferObject(point_index);
@@ -198,6 +210,10 @@ class ShaderFrame {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialized');
+        }
+
+        if ((uniform_name in this.uniform_objects) == false) {
+            throw new Error('uniform array find not uniform name => ' + uniform_name);
         }
 
         const uniform_data = this.uniform_objects[uniform_name];
@@ -740,6 +756,11 @@ class WebGLDataContainer {
      */
     createShaderFrame(name, vs_file_path, fs_file_path) {
         return new Promise((resolve) => {
+            if (name in this.shader_frames) {
+                throw new Error('shaders array key duplicate');
+            }
+            this.shader_frames[name] = null;
+
             let shader_frame = new ShaderFrame(this.gl_context);
             shader_frame.load(
                 vs_file_path,
@@ -761,6 +782,12 @@ class WebGLDataContainer {
      */
     createTextures(name, texture_slot, texture_file_path) {
         return new Promise((resolve) => {
+            if (name in this.textures) {
+                throw new Error('textures array key duplicate');
+            }
+            // 1フレーム内で連続実行しても要素の多重チェックを出来るようにするため先に要素のみ作成しておく
+            this.textures[name] = null;
+
             let texture_frame = new TextureFrame(this.gl_context, texture_slot);
             texture_frame.loadFromFile(texture_file_path)
                 .then((tex) => {

@@ -1,111 +1,246 @@
 /**
  * 板ポリ表示
  * かつテクスチャを張り付けて表示
+ * モノクロテクスチャを使ったテクスチャ切り替え
  */
-class ExtendsCanvas3D extends Canvas3D {
-    /**
-     * 設定
-     * @param {*} shaderProgram 
-     * @param {*} gl 
-     * @param {*} canvas 
-     */
-    setup(shaderProgram, gl, canvas) {
-        super.setup(shaderProgram, gl, canvas);
+class transition_texture extends Canvas3D {
+   constructor(data_file_path, webGL_data_container) {
+        super(data_file_path, webGL_data_container);
 
-        // 調整パネルGUIの入力イベント作成
-        /*
-            GUI製作ライブラリ「tweakpane」を利用
-            ありがとうございます！
-            https://github.com/cocopon/tweakpane
-        */
-        this.is_face = true;
+        this.shader_frame_name = 'transition_texture';
+        this.texture_name = 'texture';
+
+        // 3Dカメラの制御
+        this.mouse_interction_camera = CameraController.createMouseInterction();
+        this.mouse_interction_camera.setup(webGL_data_container.canvas);
+
         this.mix_value = 0.0;
+        // パラメータ調整GUI作成
+        this.parame_pane = null;
         {
-            const PANE = new Tweakpane({
-                container: document.querySelector('#pane')
-            });
-            PANE.addInput({mix: this.mix_value}, 'mix', {min: 0, max: 1.0})
-            .on('change', (v) => {
-                this.mix_value = v;
-            });
-        }
-
-        this.canvas = canvas;
-        this.mouseInterctionCamera = new MouseInterctionCamera();
-        this.mouseInterctionCamera.setup(this.canvas);
-
-        this.positions = [];
-        this.pointColors = [];
-        this.pointIndexs = []; 
-        this.texCoords = [];
-
-        // ループ処理で幾何形状の頂点を作成している
-        // 使いまわせる！
-        const VERTEX_COUNT = 1;
-        const WIDTH = 2.0;
-        for (let i = 0; i <= VERTEX_COUNT; ++i) {
-
-            let x = (i / VERTEX_COUNT) * WIDTH;
-            x -= (WIDTH * 0.5);
-            for (let j = 0; j <= VERTEX_COUNT; ++j) {
-                let y = (j / VERTEX_COUNT) * WIDTH;
-                y -= (WIDTH * 0.5);
-
-                // 頂点情報設定
-                this.positions.push(x, y, 0.0);
-                // 頂点色
-                //this.pointColors.push(i / VERTEX_COUNT, j / VERTEX_COUNT, 1.0, 1.0);
-                this.pointColors.push(1.0, 1.0, 1.0, 1.0);
-
-                // 頂点インデックス追加
-                if (i > 0 && j > 0) {
-                    let firstBaseIndex = (i - 1) * (VERTEX_COUNT + 1) + j;
-                    let secondBaseIndex = (i) * (VERTEX_COUNT + 1) + j;
-
-                    this.pointIndexs.push(
-                        firstBaseIndex - 1, firstBaseIndex, secondBaseIndex - 1,
-                        secondBaseIndex - 1, firstBaseIndex, secondBaseIndex,
-                    );
-                }
-
-                this.texCoords.push(
-                    (i / VERTEX_COUNT), 1.0 - (j / VERTEX_COUNT),
-                );
+            let pane_element = document.querySelector('#canvas_param_pane')
+            if (pane_element != null) {
+                this.parame_pane = new Tweakpane({
+                    container: pane_element
+                });
+                this.parame_pane.addInput({ mix: this.mix_value }, 'mix', { min: 0, max: 1.0 })
+                    .on('change', (v) => {
+                        this.mix_value = v;
+                    });
             }
         }
 
         // 座標変換行列作成
+        {
+            // ワールドからビュー座標系に変換する行列
+            // カメラは原点を見る, 目の位置は原点の後ろ, カメラの軸はy軸ベクトル固定
+            this.mView = createLookAtMatrixt4x4FromRighthandCorrdinate(new Vector3(0, 0, 3), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+            this.mat = new Matrix4x4();
+        }
 
-        // ローカルからワールド座標系に変換する行列
-        this.mWorld = new Matrix4x4();
-        this.mWorld.mul(createTranslationMatrix4x4(new Vector3(0.0, 0.0, 0.0)));
+        // VBO And IBO作成する情報リスト
+        {
+            this.vbo_datas = {
+                positions: {
+                    name: 'position',
+                    stride_count: 3,
+                    datas: [],
+                },
 
-        // ワールドからビュー座標系に変換する行列
-        // カメラは原点を見る, 目の位置は原点の後ろ, カメラの軸はy軸ベクトル固定
-        this.mView = createLookAtMatrixt4x4FromRighthandCorrdinate(new Vector3(0, 0, 3), new Vector3(0, 0, 0), new Vector3(0, 1, 0));
+                colors: {
+                    name: 'color',
+                    stride_count: 4,
+                    datas: [],
+                },
 
-        this.mat = new Matrix4x4();
-    }
+                texcoords: {
+                    name: 'texCoord',
+                    stride_count: 2,
+                    datas: [],
+                },
+            };
 
-    isRenderAnimation() {
-        return true;
+            this.ido_buffer_data = [];
+
+            // ループ処理で幾何形状の頂点を作成している
+            const VERTEX_COUNT = 1;
+            const WIDTH = 2.0;
+            for (let i = 0; i <= VERTEX_COUNT; ++i) {
+
+                let x = (i / VERTEX_COUNT) * WIDTH;
+                x -= (WIDTH * 0.5);
+                for (let j = 0; j <= VERTEX_COUNT; ++j) {
+                    let y = (j / VERTEX_COUNT) * WIDTH;
+                    y -= (WIDTH * 0.5);
+
+                    // 頂点情報設定
+                    this.vbo_datas.positions.datas.push(x, y, 0.0);
+                    // 頂点色
+                    //this.vbo_datas.colors.datas.push(i / VERTEX_COUNT, j / VERTEX_COUNT, 1.0, 1.0);
+                    this.vbo_datas.colors.datas.push(1.0, 1.0, 1.0, 1.0);
+
+                    // 頂点インデックス追加
+                    if (i > 0 && j > 0) {
+                        let first_base_index = (i - 1) * (VERTEX_COUNT + 1) + j;
+                        let second_base_index = (i) * (VERTEX_COUNT + 1) + j;
+
+                        this.ido_buffer_data.push(
+                            first_base_index - 1, first_base_index, second_base_index - 1,
+                            second_base_index - 1, first_base_index, second_base_index,
+                        );
+                    }
+
+                    this.vbo_datas.texcoords.datas.push(
+                        (i / VERTEX_COUNT), 1.0 - (j / VERTEX_COUNT),
+                    );
+                }
+            }
+        }
+
+        // uniformを作成するデータ
+        this.uniform_datas = {
+            global_color: {
+                name: 'globalColor',
+                type: 'uniform4fv',
+                datas: [1, 1, 1, 1],
+            },
+            mvp_mtx: {
+                name: 'mvpMatrix',
+                type: 'uniformMatrix4fv',
+                datas: this.mat.m
+            },
+            texture_unit_01: {
+                name: 'textureUnit01',
+                type: 'uniform1i',
+                datas: 0
+            },
+            texture_unit_02: {
+                name: 'textureUnit02',
+                type: 'uniform1i',
+                datas: 1
+            },
+            texture_unit_03: {
+                name: 'textureUnit03',
+                type: 'uniform1i',
+                datas: 2
+            },
+            texture_mix_ratio: {
+                name: 'ratio',
+                type: 'uniform1f',
+                datas: 0.0
+            },
+        };
     }
 
     /**
-     * 描画
+     * ロード
      */
-    render() {
-        this.mouseInterctionCamera.update();
+    load() {
+        return new Promise((reslove) => {
+            const data_container = this.webGL_data_container;
+
+            // シェーダーをロード
+            let load_shader_promise = data_container.createShaderFrame(
+                this.shader_frame_name,
+                this.data_file_path + '/vs1.vert',
+                this.data_file_path + '/fs1.frag');
+
+            // テクスチャをロード
+            let load_texture01_promise = data_container.createTextures(
+                this.uniform_datas.texture_unit_01.name,
+                this.uniform_datas.texture_unit_01.datas,
+                this.data_file_path + '/sample01.jpg');
+
+            let load_texture02_promise = data_container.createTextures(
+                this.uniform_datas.texture_unit_02.name,
+                this.uniform_datas.texture_unit_02.datas,
+                this.data_file_path + '/sample02.jpg');
+
+            let load_texture03_promise = data_container.createTextures(
+                this.uniform_datas.texture_unit_03.name,
+                this.uniform_datas.texture_unit_03.datas,
+                this.data_file_path + '/monochrome.jpg');
+ 
+            Promise.all(
+                [
+                    load_shader_promise,
+                    load_texture01_promise,
+                    load_texture02_promise,
+                    load_texture03_promise,
+                ])
+                .then((load_results) => {
+                    const shader_frame = load_results[0];
+                    // vboを作成
+                    for (let key in this.vbo_datas) {
+                        let location = this.vbo_datas[key];
+
+                        shader_frame.createVBOAttributeData(
+                            location.name,
+                            location.stride_count,
+                            location.datas);
+                    };
+
+                    // idoを作成
+                    shader_frame.createIndexBufferObject('index', this.ido_buffer_data);
+
+                    // uniform作成
+                    for (let key in this.uniform_datas) {
+                        const uniform_data = this.uniform_datas[key];
+                        shader_frame.createUniformObject(uniform_data.name, uniform_data.type);
+                    }
+
+                    // ロードしたテクスチャを有効化
+                    {
+                        const texture01_frame = load_results[1];
+                        const texture02_frame = load_results[2];
+                        const texture03_frame = load_results[3];
+
+                        texture01_frame.enableBindTexture(true);
+                        texture02_frame.enableBindTexture(true);
+                        texture03_frame.enableBindTexture(true);
+                    }
+
+                    reslove();
+                });
+        });
+    }
+
+    /**
+     * メモリやオブジェクトの解放
+     */
+    dispose() {
+        this.webGL_data_container = null;
+        if (this.parame_pane != null)
+            this.parame_pane.dispose();
+        this.parame_pane = null;
+
+        common_module.freeObject(this.vbo_datas);
+        this.vbo_datas = null;
+
+        common_module.freeObject(this.uniform_datas);
+        this.uniform_datas = null;
+
+        common_module.freeObject(this.ido_buffer_data);
+        this.ido_buffer_data = null;
+    }
+
+    /**
+     * 更新
+     */
+    update(time) {
+        const webGL_data_container = this.webGL_data_container;
+
+        this.mouse_interction_camera.update();
 
         // fov値を決める
-        let fov = 60 * this.mouseInterctionCamera.fovScale;
+        let fov = 60 * this.mouse_interction_camera.fovScale;
 
         // ビューからクリップ座標系に変換する行列
         // カメラは原点を見る, 目の位置は原点の後ろ, カメラの軸はy軸ベクトル固定
         let mProjection = createPerspectiveMatrix4x4FromRighthandCoordinate(
             fov,
-            this.canvas.width,
-            this.canvas.height,
+            webGL_data_container.canvas.width,
+            webGL_data_container.canvas.height,
             0.1,
             10.0);
 
@@ -116,155 +251,51 @@ class ExtendsCanvas3D extends Canvas3D {
 
         // マウスで回転行列を座標変換に与える
         // カメラを回転させている
-        let quaternionMatrix4x4 = converMatrix4x4FromQuaternion(this.mouseInterctionCamera.rotationQuaternion);
+        let quaternionMatrix4x4 = converMatrix4x4FromQuaternion(this.mouse_interction_camera.rotationQuaternion);
         // 射影行列 * ビュー行列 * マウス行列
         this.mat.mul(quaternionMatrix4x4);
 
-        // 射影行列 * ビュー行列 * マウス行列 * モデル行列
-        this.mat.mul(this.mWorld);
+        // uniformに渡す行列データを更新
+        const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
+        mvp_mtx_uniform_data.datas = this.mat.m;
+    }
+
+    /**
+     * 描画
+     */
+    render(gl, time) {
+        const webGL_data_container = this.webGL_data_container;
+
+        // シェーダー更新
+        let shader_frame = webGL_data_container.getShaderFrame(this.shader_frame_name);
+        // シェーダー有効化
+        shader_frame.use();
+        // VBO And IDO更新
+        shader_frame.updateVertexAttributeAndIndexBuffer();
+
+        // Uniformロケーションにデータ設定
+        {
+            const color_uniform_data = this.uniform_datas.global_color;
+            shader_frame.setUniformData(color_uniform_data.name, color_uniform_data.datas);
+
+            const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
+            shader_frame.setUniformData(mvp_mtx_uniform_data.name, mvp_mtx_uniform_data.datas);
+
+            const texture_unit_01_uniform_data = this.uniform_datas.texture_unit_01;
+            shader_frame.setUniformData(texture_unit_01_uniform_data.name, texture_unit_01_uniform_data.datas);
+
+            const texture_unit_02_uniform_data = this.uniform_datas.texture_unit_02;
+            shader_frame.setUniformData(texture_unit_02_uniform_data.name, texture_unit_02_uniform_data.datas);
+
+            const texture_unit_03_uniform_data = this.uniform_datas.texture_unit_03;
+            shader_frame.setUniformData(texture_unit_03_uniform_data.name, texture_unit_03_uniform_data.datas);
+
+            const texture_mix_ratio_uniform_data = this.uniform_datas.texture_mix_ratio;
+            texture_mix_ratio_uniform_data.datas = this.mix_value;
+            shader_frame.setUniformData(texture_mix_ratio_uniform_data.name, texture_mix_ratio_uniform_data.datas);
+        }
 
         // 転送情報を使用して頂点を画面にレンダリング
-        // 第三引数に頂点数を渡している
-        if (this.is_face === false) {
-            this.gl.drawArrays(this.gl.POINTS, 0, this.getPointCount());
-        }
-        else {
-            // インデックスバッファで描画
-            this.gl.drawElements(this.gl.TRIANGLES, this.getPointIndexs().length, this.gl.UNSIGNED_SHORT, 0);
-        }
-    }
-
-    /**
-     * 頂点シェーダーファイル
-     */
-    getVertexShaderFilePath() {
-        return './vs1.vert';
-    }
-
-    /**
-     * ピクセルシェーダーファイル
-     */
-    getFragmentShaderFilePath() {
-        return './fs1.frag';
-    }
-
-    /**
-     * 頂点シェーダーの変数
-     */
-    getAttributeLoactions() {
-        return [
-            this.gl.getAttribLocation(this.shaderProgram, 'position'),
-            this.gl.getAttribLocation(this.shaderProgram, 'color'),
-            // テクスチャ座標
-            this.gl.getAttribLocation(this.shaderProgram, 'texCoord'),
-        ];
-    }
-
-    /**
-     * 頂点シェーダーの変数要素数
-     */
-    getAttributeStrides() {
-        return [
-            3,
-            4,
-            // テクスチャ座標用
-            2,
-        ];
-    }
-
-    /**
-     * 頂点シェーダーに渡す属性値リスト
-     */
-    getOtherVertexAttributes() {
-        return [
-            this.pointColors,
-            this.texCoords,
-        ];
-    }
-
-    /**
-     * 頂点のサイズ
-     */
-    getPointSizes() {
-        return null; 
-    }
-
-    /**
-     * 頂点シェーダーがあつかう頂点座標
-     */
-    getPositions() {
-        return this.positions;
-    }
-
-    /**
-     * Uniformの変数
-     */
-    getUniformLocations() {
-        return [
-            this.gl.getUniformLocation(this.shaderProgram, 'globalColor'),
-            // 座標変換の行列(射影・ビュー・モデルを一括計算した行列)
-            this.gl.getUniformLocation(this.shaderProgram, 'mvpMatrix'),
-
-            // テクスチャユニット
-            this.gl.getUniformLocation(this.shaderProgram, 'textureUnit01'),
-            this.gl.getUniformLocation(this.shaderProgram, 'textureUnit02'),
-            this.gl.getUniformLocation(this.shaderProgram, 'textureUnit03'),
-
-            this.gl.getUniformLocation(this.shaderProgram, 'ratio'),
-        ]
-    }
-
-    /**
-     * Uniformの変数のタイプ
-     */
-    getUniformTypes() {
-        return [
-            'uniform4fv',
-            'uniformMatrix4fv',
-            // テクスチャユニットは整数単位扱い、浮動小数ではないので注意
-            'uniform1i',
-            'uniform1i',
-            'uniform1i',
-
-            'uniform1fv',
-        ];
-    }
-
-    /**
-     * Uniformに渡す値
-     */
-    getUniformLocationsValues(time) {
-        return [
-            // 色
-            [1, 1, 1, 1],
-            [this.mat.m],
-            // テクスチャユニット番号
-            [0],
-            [1],
-            [2],
-            [this.mix_value],
-        ];
-    }
-
-    /**
-     * 頂点のインデックスバッファデータ取得
-     * 1オブジェクトのみしか対応していない
-     */
-    getPointIndexs() {
-        // 配列で返す
-        return this.pointIndexs;
-    }
-
-    /**
-     * テクスチャのソース配列取得
-     * ロードするテクスチャのファイルパス一覧
-     * ここで記載しているテクスチャはロードされOpenGLのテクスチャデータとして生成される
-     */
-    getTextureSources() {
-        return [
-            './sample01.jpg',
-            './sample02.jpg',
-            './monochrome.jpg',
-        ];
+        gl.drawElements(gl.TRIANGLES, this.ido_buffer_data.length, gl.UNSIGNED_SHORT, 0);
     }
 }
