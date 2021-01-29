@@ -119,7 +119,7 @@ class points_avoid extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         const data_container = this.webGL_data_container;
         let shader_frame = data_container.getShaderFrame(this.shader_frame_name);
 
@@ -142,7 +142,7 @@ class points_avoid extends Canvas3D {
             shader_frame.setUniformData(resolution_uniform_data.name, resolution_uniform_data.datas);
 
             const time_uniform_data = this.uniform_datas.time;
-            time_uniform_data.datas = time;
+            time_uniform_data.datas = render_data.time;
             shader_frame.setUniformData(time_uniform_data.name, time_uniform_data.datas);
         }
 

@@ -90,6 +90,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 container.canvas.addEventListener('mousemove', (evt) => {
                     webgl_controller_instance.actionMouseMove(evt);
                 });
+
+                // ウィンドウリサイズイベント登録
+                window.addEventListener('resize', () => {
+                    webgl_controller_instance.actionResizeWindow();
+                })
             });
     });
 });

@@ -114,7 +114,7 @@ class aspect extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         const data_container = this.webGL_data_container;
         let shader_frame = data_container.getShaderFrame(this.shader_frame_name);
 

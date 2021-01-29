@@ -111,7 +111,7 @@ class mouse extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         let shader_frame = this.webGL_data_container.getShaderFrame(this.shader_frame_name);
 
         // シェーダー有効化

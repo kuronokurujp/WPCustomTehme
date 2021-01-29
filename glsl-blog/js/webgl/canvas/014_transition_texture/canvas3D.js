@@ -263,11 +263,11 @@ class transition_texture extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         const webGL_data_container = this.webGL_data_container;
 
         // シェーダー更新
-        let shader_frame = webGL_data_container.getShaderFrame(this.shader_frame_name);
+        const shader_frame = webGL_data_container.getShaderFrame(this.shader_frame_name);
         // シェーダー有効化
         shader_frame.use();
         // VBO And IDO更新

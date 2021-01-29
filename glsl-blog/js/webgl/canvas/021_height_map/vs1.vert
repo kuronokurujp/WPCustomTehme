@@ -2,8 +2,6 @@
 attribute vec3 position;
 attribute vec2 texCoord;
 
-uniform mat4 mvpMatrix;
-
 // ピクセルシェーダーに渡す情報
 varying vec4 vColor;
 varying vec2 vTexCoord;

@@ -228,7 +228,7 @@ class polygon_change extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         const webGL_data_container = this.webGL_data_container;
 
         // シェーダー更新

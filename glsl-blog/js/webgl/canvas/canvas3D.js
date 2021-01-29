@@ -21,6 +21,8 @@ class Canvas3D {
 
     /**
      * メモリやオブジェクトの解放
+     * キャンバス内で生成したシェーダーフレームやテクスチャフレームなどは解放しなくて良い
+     * キャンバス切り替えで一括解放しているから
      */
     dispose() {
         // 絶対実装しないといけない箇所なので例外エラーをつける
@@ -33,17 +35,17 @@ class Canvas3D {
     /**
      * 更新
      */
-    update(time) {}
+    update(time) { }
 
     /**
      * 描画前処理
      */
-    beginRender(time) {}
+    beginRender(gl, render_data) { }
 
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         // 絶対実装しないといけない箇所なので例外エラーをつける
         let error_message = 'Canvas3D Class: No render method defined';
 
@@ -54,12 +56,16 @@ class Canvas3D {
     /**
      * 描画後処理
      */
-    afterRender(time) {}
+    afterRender(time) { }
 
     /**
      * マウス移動した場合に呼び出されるアクション
      * マウス座標は正規化デバイス座標系として引数から受け取れる
      */
-    actionMoveMouse(xNDC, yNDC) {
-    }
+    actionMoveMouse(xNDC, yNDC) { }
+
+    /**
+     * スクリーンがリサイズした時のアクション
+     */
+    actionScreenResize(new_width, new_height) { }
 }

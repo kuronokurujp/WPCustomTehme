@@ -13,7 +13,7 @@ class ShaderFrame {
 
         this.vertex_buffer_objects = {};
         this.uniform_objects = {};
-        this.index_buffer_objects = [];
+        this.index_buffer_objects = {};
 
         this.gl_context = gl_context;
     }
@@ -55,29 +55,37 @@ class ShaderFrame {
         // バッファを破棄する
         {
             // 頂点バッファを破棄
-            this.vertex_buffer_objects.forEach(vertex_buffer_object => {
-                gl.deleteBuffer(vertex_buffer_object.location);
+            for (let key in this.vertex_buffer_objects) {
+                const vertex_buffer_object = this.vertex_buffer_objects[key];
+                // 頂点バッファを破棄する前に必ずロケーションは無効にしないと破棄した時にバグる
+                gl.disableVertexAttribArray(vertex_buffer_object.location);
+
+                if (gl.isBuffer(vertex_buffer_object.buffer)) {
+                    gl.deleteBuffer(vertex_buffer_object.buffer);
+                }
 
                 common_module.freeObject(vertex_buffer_object.location);
-                vertex_buffer_object.location = null;
-            });
+                common_module.freeObject(vertex_buffer_object.buffer);
+            }
             common_module.freeObject(this.vertex_buffer_objects);
-            this.vertex_buffer_objects = null;
+            this.vertex_buffer_objects = {};
 
             // インデックスバッファを破棄
-            this.index_buffer_objects.forEach(bufferObject => {
-                gl.deleteBuffer(bufferObject);
+            for (let key in this.index_buffer_objects) {
+                const index_buffer_object = this.index_buffer_objects[key];
+                if (gl.isBuffer(index_buffer_object)) {
+                    gl.deleteBuffer(index_buffer_object);
+                }
 
-                common_module.freeObject(bufferObject);
-                bufferObject = null;
-            });
+                common_module.freeObject(index_buffer_object);
+            }
             common_module.freeObject(this.index_buffer_objects);
-            this.index_buffer_objects = null;
+            this.index_buffer_objects = {};
         }
 
         // Uniformを破棄
         common_module.freeObject(this.uniform_objects);
-        this.uniform_objects = null;
+        this.uniform_objects = {};
 
         // 各シェーダーを破棄
         if (this.vs != null) {
@@ -120,12 +128,12 @@ class ShaderFrame {
         }
 
         let location = gl.getAttribLocation(this.shader_program, attribute_name);
-        let datas = this._createVertexBufferObject(data);
+        let buffer = this._createVertexBufferObject(data);
 
         this.vertex_buffer_objects[attribute_name] = {
             location: location,
             stride: stride,
-            datas: datas
+            buffer: buffer
         };
     }
 
@@ -294,7 +302,7 @@ class ShaderFrame {
         for (let key in vertex_buffer_objects) {
             let vertex_buffer_object = vertex_buffer_objects[key];
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer_object.datas);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer_object.buffer);
             gl.enableVertexAttribArray(vertex_buffer_object.location);
             gl.vertexAttribPointer(
                 vertex_buffer_object.location,
@@ -383,7 +391,14 @@ class ShaderFrame {
             // fetchメソッドはサーバーからリソースを非同期ロード
             // URLを指定してロードできる
             // なのでサーバー上で実行されていないとエラーになる
-            return fetch(path).then((response) => { return response.text(); })
+            return fetch(path, { cache: 'no-cache' })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    return response.text();
+                })
         });
 
         return Promise.all(promises);
@@ -409,6 +424,13 @@ class TextureFrame {
 
         this.texture_slot = texture_slot;
         this.active_texture = null;
+    }
+
+    /**
+     * 外部からテクスチャを設定する場合
+     */
+    bindTexture(texture) {
+        this.active_texture = texture;
     }
 
     /**
@@ -471,8 +493,9 @@ class TextureFrame {
 
             if (gl.isTexture(this.active_texture)) {
                 gl.deleteTexture(this.active_texture);
-                this.active_texture = null;
             }
+
+            this.active_texture = null;
         }
 
         this.gl = null;
@@ -483,8 +506,9 @@ class TextureFrame {
      * @param {*} enable 
      */
     enableBindTexture(enable) {
-        if (this.active_texture == null)
-            return;
+        if (this.active_texture == null) {
+            throw new Error('active texute is null');
+        }
 
         const gl = this.gl;
 
@@ -507,6 +531,7 @@ class TextureFrame {
 /**
  * WebGLビュークラス
  * 描画専門のクラス
+ * フルスクリーン描画前提としている
  */
 class WebGLView {
     constructor() {
@@ -522,6 +547,8 @@ class WebGLView {
         this.animation_rendering = true;
 
         this.enable_flag = false;
+
+        this.window_resize_flag = false;
     }
 
     /**
@@ -563,6 +590,13 @@ class WebGLView {
      */
     disable() {
         this.enable_flag = false;
+    }
+
+    /**
+     * ウィンドウがリサイズされた
+     */
+    noticeResizeWindow() {
+        this.window_resize_flag = true;
     }
 
     /**
@@ -615,21 +649,32 @@ class WebGLView {
         // 黒色で塗りつぶす
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
 
-        // 3Dのビューポートのサイズをプラウザのスクリーンサイズに合わせる
-        gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-        // カラー + 深度バッファクリア
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        let render_data = {
+            time: this.now_time,
+            window_width: window.innerWidth,
+            window_height: window.innerHeight,
+            window_resize_flag: this.window_resize_flag
+        };
 
         // 描画前処理
         this.canvas3Ds.forEach((canvas3D) => {
-            canvas3D.beginRender(this.now_time);
+            // 描画前処理
+            canvas3D.beginRender(gl, render_data);
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+            // 3Dのビューポートのサイズをプラウザのスクリーンサイズに合わせる
+            gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+            // カラー + 深度バッファクリア
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
             // 描画
-            canvas3D.render(gl, this.now_time);
+            canvas3D.render(gl, render_data);
 
             // 描画後処理
             canvas3D.afterRender(this.now_time);
         });
+        this.window_resize_flag = false;
     }
 
     /**
@@ -671,140 +716,29 @@ class WebGLView {
 }
 
 /**
- * WebGLデータコンテナクラス
+ * 画面レンダリングのテクスチャ
  */
-class WebGLDataContainer {
-    /**
-     * コンストラクタ
-     * jsでデストラクタはない
-     */
-    constructor(canvas) {
-        // シェーダーフレーム一覧
-        this.shader_frames = [];
-
-        // ロードしたテクスチャ一覧
-        this.textures = [];
-
-        this.canvas = null;
-        this.gl_context = null;
-
-        // canvasからGLコンテキストを取得
-
-        // canvasがHTMLCanvasElementならそのまま代入
-        // HTMLCanvasElementはcanvas要素のインターフェイス
-        if (canvas instanceof HTMLCanvasElement == true) {
-            this.canvas = canvas;
-        }
-        /**
-         * 文字列型かどうかの型判定
-         * 文字列もオブジェクトである。
-         * オブジェクト名を取り出して名前から型を判別できる
-         * この記事が一番参考になった
-         * https://qiita.com/south37/items/c8d20a069fcbfe4fce85 
-         */
-        else if (Object.prototype.toString.call(canvas) == '[object String]') {
-            // #をつけた文字列でcanvas要素を取得
-            const c = document.querySelector(`#${canvas}`);
-            if (c instanceof HTMLCanvasElement == true) {
-                this.canvas = c
-            }
+class RenderTexture {
+    constructor(gl) {
+        if (gl == null) {
+            throw new Error('webgl not initialized');
         }
 
-        // canvasがない場合は例外エラー
-        if (this.canvas == null) {
-            throw new Error('invalid argument');
-        }
+        this.gl = gl;
+        this.texture = null;
+        this.texture_slot = 0;
+        this.frame_buffer = null;
+        this.render_buffer = null;
 
-        // canvasからWebGLコンテキスト取得
-        // canvas内にWebGLコンテキストがあるのか
-        this.gl_context = this.canvas.getContext('webgl');
-        if (this.gl_context == null) {
-            // WebGLのコンテキストが取得出来ないならエラー
-            throw new Error('webgl not supported');
-        }
+        this.width = 0;
+        this.height = 0;
     }
 
     /**
-     * データ一括リリース
+     * レンダー用のテクスチャ作成
      */
-    release() {
-        // メモリリークしないようにする
-        this.shader_frames.forEach(shader_frame => {
-            shader_frame.dispose();
-
-            common_module.freeObject(shader_frame);
-            shader_frame = null;
-        });
-        this.shader_frames = [];
-
-        this.textures.forEach(texture => {
-            texture.dispose();
-
-            common_module.freeObject(texture);
-            texture = null;
-        });
-        this.textures = [];
-    }
-
-    getShaderFrame(name) {
-        return this.shader_frames[name];
-    }
-
-    /**
-     * シェーダフレームを生成
-     * ロードする頂点とピクセルシェーダーファイルパスを指定
-     */
-    createShaderFrame(name, vs_file_path, fs_file_path) {
-        return new Promise((resolve) => {
-            if (name in this.shader_frames) {
-                throw new Error('shaders array key duplicate');
-            }
-            this.shader_frames[name] = null;
-
-            let shader_frame = new ShaderFrame(this.gl_context);
-            shader_frame.load(
-                vs_file_path,
-                fs_file_path
-            ).then(() => {
-                // ロード成功したら管理リストに追加
-                this.shader_frames[name] = shader_frame;
-                resolve(this.shader_frames[name]);
-            });
-        });
-    }
-
-    getTexture(name) {
-        return this.textures[name];
-    }
-
-    /**
-     * シェーダーで利用するテクスチャをファイルパス指定でロード
-     */
-    createTextures(name, texture_slot, texture_file_path) {
-        return new Promise((resolve) => {
-            if (name in this.textures) {
-                throw new Error('textures array key duplicate');
-            }
-            // 1フレーム内で連続実行しても要素の多重チェックを出来るようにするため先に要素のみ作成しておく
-            this.textures[name] = null;
-
-            let texture_frame = new TextureFrame(this.gl_context, texture_slot);
-            texture_frame.loadFromFile(texture_file_path)
-                .then((tex) => {
-                    this.textures[name] = tex;
-                    resolve(this.textures[name]);
-                });
-        });
-    }
-
-    /**
-     * フレームバッファ作成
-     * フレーム、デプス、テクスチャの３つのバッファを返す
-     * @param {*} width 
-     * @param {*} height 
-     */
-    createFrameBuffer(width, height) {
-        const gl = this.gl_context;
+    create(texture_slot, width, height) {
+        const gl = this.gl;
         if (gl == null) {
             throw new Error('webgl not initialized');
         }
@@ -853,51 +787,280 @@ class WebGLDataContainer {
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        // 変数をまとめてグループとして返す事が出来る
-        // 構造体になる
-        return {
-            frame_buffer: frame_buffer,
-            render_buffer: depth_render_buffer,
-            texture_buffer: texture_buffer
-        };
+        this.frame_buffer = frame_buffer;
+        this.render_buffer = depth_render_buffer;
+
+        this.width = width;
+        this.height = height;
+        this.texture_slot = texture_slot;
+
+        // フレームバッファとテクスチャバッファの関連付け
+        this.texture = new TextureFrame(gl, this.texture_slot);
+        this.texture.bindTexture(texture_buffer);
     }
 
     /**
-     * フレームバッファを消す
-     * @param {*} frame_buffer_object 
+     * 破棄
+     * 未使用になったら必ず呼ぶ
+     * そうしないとメモリリークとなる
      */
-    deleteFrameBuffer(frame_buffer_object) {
-        const gl = this.gl_context;
+    dispose() {
+        const gl = this.gl;
         if (gl == null) {
             return;
         }
-        if (frame_buffer_object == null) {
-            return;
-        }
+
+        // TODO: Resizeでうまくいかない
 
         // フレームバッファ情報があれば消す
-        if (frame_buffer_object.hasOwnProperty('framebuffer') === true
-            && gl.isFramebuffer(frame_buffer_object.framebuffer) === true) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.deleteFrameBuffer(frame_buffer_object.framebuffer);
-            frame_buffer_object.framebuffer = null;
+        if (this.frame_buffer != null) {
+            if (gl.isFramebuffer(this.frame_buffer) === true) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                gl.deleteFramebuffer(this.frame_buffer);
+            }
+
+            this.frame_buffer = null;
         }
 
         // デプスバッファ情報があれば消す
-        if (frame_buffer_object.hasOwnProperty('renderbuffer') === true
-            && gl.isRenderbuffer(frame_buffer_object.renderbuffer) === true) {
-            gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-            gl.deleteRenderbuffer(frame_buffer_object.renderbuffer);
-            frame_buffer_object.renderbuffer = null;
+        if (this.render_buffer != null) {
+            if (gl.isRenderbuffer(this.render_buffer) === true) {
+                gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+                gl.deleteRenderbuffer(this.render_buffer);
+            }
+
+            this.render_buffer = null;
         }
 
         // テクスチャ情報があれば消す
-        if (frame_buffer_object.hasOwnProperty('texturebuffer') === true
-            && gl.isTexture(frame_buffer_object.texturebuffer) === true) {
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.deleteTexture(frame_buffer_object.texturebuffer);
-            frame_buffer_object.texturebuffer = null;
+        if (this.texture != null) {
+            this.texture.dispose();
+            this.texture = null;
         }
-        frame_buffer_object = null;
+    }
+
+    /**
+     * 使用開始
+     */
+    begin() {
+        if (this.texture == null)
+            return;
+
+        this.texture.enableBindTexture(true);
+    }
+
+    /**
+     * 使用終了
+     */
+    end() {
+        if (this.texture == null)
+            return;
+
+        this.texture.enableBindTexture(false);
+    }
+
+    /**
+     * サイズ変更
+     */
+    resize(width, height) {
+        this.dispose();
+        this.create(this.texture_slot, width, height);
+    }
+
+    /**
+     * レンダリング内容を書き込む
+     */
+    writeRendering(renderFunc) {
+        const gl = this.gl;
+        if (gl == null) {
+            return;
+        }
+
+        if (this.frame_buffer == null) {
+            throw new Error('RenderTexture: non frame buffer');
+        }
+
+        // オフスクリーンレンダリングを有効にする
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.frame_buffer);
+        // 3Dのビューポートのサイズをプラウザのスクリーンサイズに合わせる
+        gl.viewport(0, 0, this.width, this.height);
+        // カラー + 深度バッファクリア
+        // 塗りつぶす色が反映
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // 描画関数
+        renderFunc();
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+}
+
+/**
+ * WebGLデータコンテナクラス
+ */
+class WebGLDataContainer {
+    /**
+     * コンストラクタ
+     * jsでデストラクタはない
+     */
+    constructor(canvas) {
+        // シェーダーフレーム一覧
+        this.shader_frames = [];
+
+        // ロードしたテクスチャ一覧
+        this.textures = [];
+
+        // レンダーテクスチャー一覧
+        this.render_textures = [];
+
+        this.canvas = null;
+        this.gl_context = null;
+
+        // canvasからGLコンテキストを取得
+
+        // canvasがHTMLCanvasElementならそのまま代入
+        // HTMLCanvasElementはcanvas要素のインターフェイス
+        if (canvas instanceof HTMLCanvasElement == true) {
+            this.canvas = canvas;
+        }
+        /**
+         * 文字列型かどうかの型判定
+         * 文字列もオブジェクトである。
+         * オブジェクト名を取り出して名前から型を判別できる
+         * この記事が一番参考になった
+         * https://qiita.com/south37/items/c8d20a069fcbfe4fce85 
+         */
+        else if (Object.prototype.toString.call(canvas) == '[object String]') {
+            // #をつけた文字列でcanvas要素を取得
+            const c = document.querySelector(`#${canvas}`);
+            if (c instanceof HTMLCanvasElement == true) {
+                this.canvas = c
+            }
+        }
+
+        // canvasがない場合は例外エラー
+        if (this.canvas == null) {
+            throw new Error('invalid argument');
+        }
+
+        // canvasからWebGLコンテキスト取得
+        // canvas内にWebGLコンテキストがあるのか
+        this.gl_context = this.canvas.getContext('webgl');
+        if (this.gl_context == null) {
+            // WebGLのコンテキストが取得出来ないならエラー
+            throw new Error('webgl not supported');
+        }
+    }
+
+    /**
+     * データ一括リリース
+     */
+    dispose() {
+        // メモリリークしないようにする
+        for (let key in this.shader_frames) {
+            const shader_frame = this.shader_frames[key];
+
+            shader_frame.dispose();
+            common_module.freeObject(shader_frame);
+        }
+        common_module.freeObject(this.shader_frames);
+        this.shader_frames = {};
+
+        for (let key in this.textures) {
+            const texture = this.textures[key];
+            texture.dispose();
+
+            common_module.freeObject(texture);
+        }
+        common_module.freeObject(this.textures);
+        this.textures = {};
+
+        for (let key in this.render_textures) {
+            const texture = this.render_textures[key];
+            texture.dispose();
+            common_module.freeObject(texture);
+        }
+        common_module.freeObject(this.render_textures);
+        this.render_textures = {};
+    }
+
+    getShaderFrame(name) {
+        return this.shader_frames[name];
+    }
+
+    /**
+     * シェーダフレームを生成
+     * ロードする頂点とピクセルシェーダーファイルパスを指定
+     */
+    createShaderFrame(name, vs_file_path, fs_file_path) {
+        return new Promise((resolve) => {
+            if (name in this.shader_frames) {
+                throw new Error('shaders array key duplicate');
+            }
+            this.shader_frames[name] = null;
+
+            let shader_frame = new ShaderFrame(this.gl_context);
+            shader_frame.load(
+                vs_file_path,
+                fs_file_path
+            ).then(() => {
+                // ロード成功したら管理リストに追加
+                this.shader_frames[name] = shader_frame;
+                resolve(this.shader_frames[name]);
+            });
+        });
+    }
+
+    getTexture(name) {
+        if (!(name in this.textures)) {
+            throw new Error('texture list find not name => ' + name);
+        }
+        return this.textures[name];
+    }
+
+    /**
+     * シェーダーで利用するテクスチャをファイルパス指定でロード
+     */
+    createTextures(name, texture_slot, texture_file_path) {
+        return new Promise((resolve) => {
+            if (name in this.textures) {
+                throw new Error('textures array key duplicate');
+            }
+            // 1フレーム内で連続実行しても要素の多重チェックを出来るようにするため先に要素のみ作成しておく
+            this.textures[name] = null;
+
+            let texture_frame = new TextureFrame(this.gl_context, texture_slot);
+            texture_frame.loadFromFile(texture_file_path)
+                .then((tex) => {
+                    this.textures[name] = tex;
+                    resolve(this.textures[name]);
+                });
+        });
+    }
+
+    /**
+     * レンダーテクスチャーを生成
+     * 書き込む先のテクスチャスロットを指定する
+     */
+    createRenderTexture(name, texture_slot, width, height) {
+        if (name in this.render_textures) {
+            throw new Error('render_texture array name duplicate => ' + name);
+        }
+
+        const render_texture = new RenderTexture(this.gl_context);
+        render_texture.create(texture_slot, width, height);
+
+        this.render_textures[name] = render_texture;
+    }
+
+    /**
+     * 生成したレンダーテクスチャーを取得
+     */
+    getRenderTexture(name) {
+        if ((name in this.render_textures) == false) {
+            throw new Error('render_texture array name find not => ' + name);
+        }
+
+        return this.render_textures[name];
     }
 }

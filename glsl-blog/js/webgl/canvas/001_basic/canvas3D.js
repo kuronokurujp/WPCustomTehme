@@ -46,7 +46,7 @@ class basic extends Canvas3D {
     /**
      * 描画
      */
-    render(gl, time) {
+    render(gl, render_data) {
         let shader_frame = this.webGL_data_container.getShaderFrame('basic');
 
         // シェーダー有効化

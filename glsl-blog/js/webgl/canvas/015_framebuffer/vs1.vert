@@ -29,5 +29,5 @@ void main() {
 
     // 列ベクトル基準なので行列を前にする
     gl_Position = mvpMatrix * vec4(p, 1.0);
-    gl_PointSize = 4.0;
+    //gl_PointSize = 64.0;
 }

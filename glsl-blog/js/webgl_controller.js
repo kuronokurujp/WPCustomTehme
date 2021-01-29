@@ -98,4 +98,11 @@ class WebGLController {
             canvas3D.actionMoveMouse(mouseModel.mouseX, mouseModel.mouseY);
         });
     }
+
+    /**
+     * ウィンドウリサイズ発生
+     */
+    actionResizeWindow() {
+        this.view.noticeResizeWindow();
+    }
 }
