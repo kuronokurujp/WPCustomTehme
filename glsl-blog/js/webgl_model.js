@@ -77,7 +77,7 @@ let WebGLModel = {
                 this.first_load_js_file_paths = [
                     this.js_root_file_path + '/js/webgl/canvas/canvas3D.js',
                     this.js_root_file_path + '/js/webgl/canvas/framebuffer_template_canvas3D.js',
-                    this.js_root_file_path + '/js/webgl/canvas/default_canvas3D.js'
+                    this.js_root_file_path + '/js/webgl/canvas/default_canvas3D.js',
                 ];
             }
 
@@ -104,6 +104,9 @@ let WebGLModel = {
                     Promise.all(promises)
                         .then((load_results) => {
                             resolve();
+                        })
+                        .catch((ex) => {
+                            common_module.noticeError(ex);
                         });
                 });
             }
@@ -176,7 +179,9 @@ let WebGLModel = {
                             .then(() => {
                                 resolve(this.buildCanvas(className, canvas_root_directory));
                             })
-                            .catch(() => {
+                            .catch((ex) => {
+                                common_module.noticeError(ex);
+
                                 this.canvas3D = new default_canvas3D(canvas_root_directory, this.data_container);
                                 resolve(this.canvas3D);
                             });

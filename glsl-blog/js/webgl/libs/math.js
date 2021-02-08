@@ -10,6 +10,16 @@
 const RADIANS_UNIT = Math.PI / 180.0;
 const INVERT_RADIANS_UNIT = 180.0 / Math.PI;
 
+
+/**
+ * 最小を含み最大未満のランダム値を取得
+ */
+function RandomRange(min, max) {
+    let length = (max - min);
+    let r = Math.random();
+    return (r * length) + min;
+}
+
 /**
  * ラジアンから角度に変換
  */

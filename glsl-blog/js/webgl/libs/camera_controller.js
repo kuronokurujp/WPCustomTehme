@@ -5,7 +5,7 @@ let CameraController = {
     /**
      * マウスによるカメラ制御
      */
-    createMouseInterction: function() {
+    createMouseInterction: function () {
         /**
          * マウスのカメラ制御クラス
          */
@@ -37,6 +37,19 @@ let CameraController = {
                 canvas.addEventListener('mousemove', this.moveDragEvent.bind(this), false);
                 canvas.addEventListener('mouseup', this.endDragEvent.bind(this), false);
                 canvas.addEventListener('wheel', this.wheelEvent.bind(this), false);
+            }
+
+            /**
+             * カメラの画角のスケール最大・最小設定
+             * fovMinが拡大制限値, fovMaxが拡縮制限値
+             */
+            setFovScaleMinAndMax(fovMin, fovMax) {
+                console.assert(0 < fovMin);
+                console.assert(0 < fovMax);
+                console.assert(fovMin < fovMax);
+
+                this.fovScaleMin = fovMin;
+                this.fovScaleMax = fovMax;
             }
 
             /**
@@ -125,6 +138,27 @@ let CameraController = {
                 this.rotationPower *= this.rotationAttenuation;
 
                 q.rotate(this.rotationAxis, this.rotationPower);
+                this.rotationQuaternion.multiply(q);
+            }
+
+            /**
+             * 拡大縮小
+             * 大きい値なら拡大
+             * 小さい値なら縮小
+             */
+            scale(scalePower) {
+                this.fovScale = scalePower;
+            }
+
+            /**
+            * 回転
+            */
+            rotateAngle(axis, angleFromRadian) {
+                this.rotationAxis = axis;
+
+                const q = new Quaternion();
+
+                q.rotate(this.rotationAxis, angleFromRadian);
                 this.rotationQuaternion.multiply(q);
             }
         }

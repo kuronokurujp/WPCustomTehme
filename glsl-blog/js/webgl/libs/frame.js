@@ -128,6 +128,11 @@ class ShaderFrame {
         }
 
         let location = gl.getAttribLocation(this.shader_program, attribute_name);
+        // シェーダー内に存在しないロケーション名を指定している
+        if (location === -1) {
+            console.warn('getAttribLocation is error to attribute_name[' + attribute_name + '] is undefined or unused');
+        }
+
         let buffer = this._createVertexBufferObject(data);
 
         this.vertex_buffer_objects[attribute_name] = {
@@ -151,6 +156,11 @@ class ShaderFrame {
         }
 
         let location = gl.getUniformLocation(this.shader_program, uniform_name);
+        // uniform名がない場合は警告を出す
+        if (location == null) {
+            console.warn('getUniformLocation is error to uniform_name[' + uniform_name + '] is undefined');
+        }
+
         this.uniform_objects[uniform_name] = {
             location: location,
             type_name: type_name,
@@ -218,6 +228,10 @@ class ShaderFrame {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialized');
+        }
+
+        if (value == null) {
+            throw new Error('uniform[' + uniform_name + '] value is null');
         }
 
         if ((uniform_name in this.uniform_objects) == false) {
@@ -445,10 +459,9 @@ class TextureFrame {
         }
 
         // テクスチャファイルを非同期ロード
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const img = new Image();
             // ファイル開始(失敗時は対応していない)
-            // TODO: ファイルロード失敗した時の対応が必要
             img.addEventListener('load', () => {
 
                 // ファイルロード成功
@@ -474,6 +487,10 @@ class TextureFrame {
                 this.active_texture = tex;
                 resolve(this);
             }, false);
+
+            img.addEventListener('error', () => {
+                reject(Error('Error CreateTexture: file find not => ' + source));
+            });
 
             // ロードするパス設定
             img.src = source;
@@ -648,6 +665,11 @@ class WebGLView {
         // 画面を塗りつぶす色設定
         // 黒色で塗りつぶす
         gl.clearColor(0.1, 0.1, 0.1, 1.0);
+
+        // デフォルトではデプステストは有効
+        gl.enable(gl.DEPTH_TEST);
+        // デフォルトではブレンドは無効
+        gl.disable(gl.BLEND);
 
         let render_data = {
             time: this.now_time,
@@ -1022,7 +1044,7 @@ class WebGLDataContainer {
      * シェーダーで利用するテクスチャをファイルパス指定でロード
      */
     createTextures(name, texture_slot, texture_file_path) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (name in this.textures) {
                 throw new Error('textures array key duplicate');
             }
@@ -1034,6 +1056,10 @@ class WebGLDataContainer {
                 .then((tex) => {
                     this.textures[name] = tex;
                     resolve(this.textures[name]);
+                })
+                .catch((error) => {
+                    throw error;
+                    reject(error);
                 });
         });
     }
