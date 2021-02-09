@@ -1,9 +1,10 @@
 /**
  * ４つのノイズを使って頂点座標をランダムウォークさせる
- * 作成中
  * ４つのランダムを作成してuniform4fvの４要素にそれぞれぶっこむ
  * シェーダー内でその４要素を利用する
  */
+"use strict";
+
 class particle_random_walk extends Canvas3D {
     /**
      * コンストラクタ
@@ -320,7 +321,7 @@ class particle_random_walk extends Canvas3D {
         // 点描画
         {
             const vbo_positions = this.vbo_datas.positions;
-            gl.drawArrays(gl.POINT, 0, vbo_positions.datas.length / vbo_positions.stride_count);
+            gl.drawArrays(gl.POINTS, 0, vbo_positions.datas.length / vbo_positions.stride_count);
         }
     }
 }

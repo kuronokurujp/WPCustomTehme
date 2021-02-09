@@ -150,7 +150,7 @@ class points extends Canvas3D {
         const positions = this.vbo_datas.positions;
 
         // ポイントスプライトなので第3引数に表示する点の数を指定
-        gl.drawArrays(gl.POINT, 0, positions.datas.length / positions.stride_count);
+        gl.drawArrays(gl.POINTS, 0, positions.datas.length / positions.stride_count);
     }
 
     /**

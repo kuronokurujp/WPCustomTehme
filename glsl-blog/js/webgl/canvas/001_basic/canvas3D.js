@@ -1,6 +1,8 @@
 /**
  * ポイントスプライトを表示するキャンバス
  */
+"use strict";
+
 class basic extends Canvas3D {
     constructor(data_file_path, webGL_data_container) {
         super(data_file_path, webGL_data_container);
@@ -57,6 +59,6 @@ class basic extends Canvas3D {
         shader_frame.setUniformData('globalColor', [1, 1, 1, 1]);
 
         // 描画実行
-        gl.drawArrays(gl.POINT, 0, this.point_sprite_positions.length / this.point_sprite_position_stride);
+        gl.drawArrays(gl.POINTS, 0, this.point_sprite_positions.length / this.point_sprite_position_stride);
     }
 }

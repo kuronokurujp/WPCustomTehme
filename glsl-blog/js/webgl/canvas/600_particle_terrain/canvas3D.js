@@ -330,7 +330,7 @@ class particle_terrain extends Canvas3D {
         // 描画
         {
             const vbo_positions = this.vbo_datas.positions;
-            gl.drawArrays(gl.POINT, 0, vbo_positions.datas.length / vbo_positions.stride_count);
+            gl.drawArrays(gl.POINTS, 0, vbo_positions.datas.length / vbo_positions.stride_count);
         }
 
         noise_texture.enableBindTexture(false);
