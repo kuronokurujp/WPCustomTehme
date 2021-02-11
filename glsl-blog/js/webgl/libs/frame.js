@@ -1,12 +1,13 @@
 /**
  * WegGLを扱うためのフレーム群
  */
+"use strict";
 
 /**
  * Shaderクラス
  */
 class ShaderFrame {
-    constructor(gl_context) {
+    constructor(gl_context, name) {
         this.vs = null;
         this.fs = null;
         this.shader_program = null;
@@ -16,12 +17,11 @@ class ShaderFrame {
         this.index_buffer_objects = {};
 
         this.gl_context = gl_context;
+        this.unique_name = name;
     }
 
     /**
      * 頂点とフラグメントシェーダーファイルをロード
-     * @param {*} vs_file_name 
-     * @param {*} fs_file_name 
      */
     load(vs_file_name, fs_file_name) {
         const gl = this.gl_context;
@@ -33,15 +33,19 @@ class ShaderFrame {
                 fs_file_name,
             ])
                 .then((shaders) => {
-
                     // テキストシェーダーファイルを指定してコンパイルしたシェーダーを作成
                     this.vs = this._createShader(shaders[0], gl.VERTEX_SHADER);
                     this.fs = this._createShader(shaders[1], gl.FRAGMENT_SHADER);
 
                     // 頂点とピクセルのシェーダーを設定したプログラムを作成
-                    this.shader_program = this._createProgram(this.vs, this.fs);
-
-                    resolve(this);
+                    this.shader_program = this._createProgramAndAttach(this.vs, this.fs);
+                    // 作成したプログラムのリンクを行う
+                    if (this._link(this.shader_program)) {
+                        resolve(this);
+                    }
+                    else {
+                        reject('error shader programu link');
+                    }
                 });
         });
     }
@@ -133,7 +137,10 @@ class ShaderFrame {
             console.warn('getAttribLocation is error to attribute_name[' + attribute_name + '] is undefined or unused');
         }
 
-        let buffer = this._createVertexBufferObject(data);
+        let buffer = null;
+        if (data != null) {
+            buffer = this._createVertexBufferObject(data);
+        }
 
         this.vertex_buffer_objects[attribute_name] = {
             location: location,
@@ -196,6 +203,42 @@ class ShaderFrame {
         gl.useProgram(this.shader_program);
     }
 
+    beginProcess() {
+        this.use();
+        this.updateVertexAttributeAndIndexBuffer();
+    }
+
+    endProcess() {
+    }
+
+    /**
+     * 指定名の頂点属性データがあるか
+     */
+    isVertexAttribute(name) {
+        if (!(name in this.vertex_buffer_objects)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * 外部からのVBOのBufferを使って更新
+     */
+    updateVertexAttributeAndExternalVBO(target_attribute_name, vbo) {
+        if (!(target_attribute_name in this.vertex_buffer_objects)) {
+            throw new Error('targer attribute name[' + target_attribute_name + '] is not');
+        }
+        let targert_vbo_object = this.vertex_buffer_objects[target_attribute_name];
+
+        this._setVertexAttributeLowMoudle(
+            targert_vbo_object.location,
+            targert_vbo_object.stride,
+            // 設定したVBOのbufferを設定
+            vbo.data
+        );
+    }
+
     /**
      * VBO設定を更新
      */
@@ -212,6 +255,7 @@ class ShaderFrame {
         this._setVertexAttribute(
             this.vertex_buffer_objects,
         );
+
 
         this._setIndexBuffer(this.index_buffer_objects);
     }
@@ -275,10 +319,8 @@ class ShaderFrame {
 
     /**
      * 頂点とピクセルの２つシェーダからシェーダプログラムを生成
-     * @param {*} vs 
-     * @param {*} fs 
      */
-    _createProgram(vs, fs) {
+    _createProgramAndAttach(vs, fs) {
         const gl = this.gl_context;
         if (gl == null) {
             throw new Error('webgl not initialiazed');
@@ -289,6 +331,23 @@ class ShaderFrame {
         // シェーダープログラムに頂点とピクセルのシェーダをアタッチ
         gl.attachShader(program, vs);
         gl.attachShader(program, fs);
+
+        return program;
+    }
+
+    /**
+     * シェーダープログラムのリンク
+     */
+    _link(program) {
+        const gl = this.gl_context;
+        if (gl == null) {
+            throw new Error('webgl not initialiazed');
+        }
+
+        if (program == null) {
+            throw new Error('shader program not');
+        }
+
         // OpenGLにシェーダープログラムをリンクさせる
         gl.linkProgram(program);
 
@@ -296,12 +355,13 @@ class ShaderFrame {
         if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
             // リンク状態であればシェーダープログラムを使用状態にする
             gl.useProgram(program);
-            return program;
+            return true;
         }
 
         alert(gl.getProgramInfoLog(program));
-        return null;
+        return false;
     }
+
     /**
      * VBOの設定
      */
@@ -315,17 +375,32 @@ class ShaderFrame {
         // VBO配列からVBOを有効化して情報設定
         for (let key in vertex_buffer_objects) {
             let vertex_buffer_object = vertex_buffer_objects[key];
+            if (vertex_buffer_object.buffer == null)
+                continue;
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer_object.buffer);
-            gl.enableVertexAttribArray(vertex_buffer_object.location);
-            gl.vertexAttribPointer(
+            this._setVertexAttributeLowMoudle(
                 vertex_buffer_object.location,
                 vertex_buffer_object.stride,
-                gl.FLOAT,
-                false,
-                0, 0);
-            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+                vertex_buffer_object.buffer
+            );
         }
+    }
+
+    /**
+    頂点情報を設定(低モジュール用)
+     */
+    _setVertexAttributeLowMoudle(location, stride, buffer) {
+        const gl = this._getContext();
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.enableVertexAttribArray(location);
+        gl.vertexAttribPointer(
+            location,
+            stride,
+            gl.FLOAT,
+            false,
+            0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
     }
 
     /**
@@ -416,6 +491,256 @@ class ShaderFrame {
         });
 
         return Promise.all(promises);
+    }
+
+    /**
+     * WebGLコンテキスト取得
+     */
+    _getContext() {
+        const gl = this.gl_context;
+        if (gl == null) {
+            throw new Error('webgl not initialized');
+        }
+
+        return gl;
+    }
+}
+
+/**
+ TransformFeedback用シェーダーフレーム
+ */
+class ShaderTransformFeedbackFrame extends ShaderFrame {
+    constructor(gl_context, name) {
+        super(gl_context, name);
+
+        this.varying_names = [];
+        this.flip_index = 0;
+        this.write_vbo_index = 0;
+        this.process_step = 0;
+        this.transform_feedback_vertex_buffer_objects = {};
+    }
+
+    /**
+     * 頂点とフラグメントシェーダーファイルをロード
+     */
+    load(vs_file_name, fs_file_name, varying_names) {
+        this.varying_names = varying_names;
+
+        return super.load(vs_file_name, fs_file_name);
+    }
+
+    /**
+     * リソースを解放
+     */
+    dispose() {
+        const gl = this._getContext();
+
+        for (let key in this.transform_feedback_vertex_buffer_objects) {
+            const vbo = this.transform_feedback_vertex_buffer_objects[key];
+
+            // 頂点バッファを破棄する前に必ずロケーションは無効にしないと破棄した時にバグる
+            gl.disableVertexAttribArray(vbo.location);
+
+            vbo.datas.forEach((buffer) => {
+                if (gl.isBuffer(buffer)) {
+                    gl.deleteBuffer(buffer);
+                }
+            });
+
+            common_module.freeObject(vbo.location);
+            common_module.freeObject(vbo.datas);
+        }
+        common_module.freeObject(this.transform_feedback_vertex_buffer_objects);
+        this.transform_feedback_vertex_buffer_objects = {};
+
+        super.dispose();
+    }
+
+    /**
+     * 頂点バッファの属性作成
+     * TransformFeedback用のを作成
+     */
+    createVBOAttributeData(attribute_name, stride, data) {
+
+        const gl = this._getContext();
+        if (attribute_name in this.transform_feedback_vertex_buffer_objects) {
+            throw new Error('vertex buffer array name duplicate => ' + attribute_name);
+        }
+
+        let location = gl.getAttribLocation(this.shader_program, attribute_name);
+        // シェーダー内に存在しないロケーション名を指定している
+        if (location === -1) {
+            console.warn('getAttribLocation is error to attribute_name[' + attribute_name + '] is undefined or unused');
+        }
+
+        // 読み込みと書き込みの二つが必要なので用意する
+        this.transform_feedback_vertex_buffer_objects[attribute_name] = {
+            location: location,
+            stride: stride,
+            datas: [
+                this._createVertexBufferObject(data),
+                this._createVertexBufferObject(data),
+            ]
+        };
+    }
+
+    /**
+     * FeedbackしたVBOリスト取得
+     */
+    getFeedbackVBOMap() {
+        let vbos = {};
+        for (let key in this.transform_feedback_vertex_buffer_objects) {
+            const buffer_object = this.transform_feedback_vertex_buffer_objects[key];
+
+            vbos[key] =
+            {
+                location: buffer_object.location,
+                stride: buffer_object.stride,
+                data: buffer_object.datas[this.write_vbo_index]
+            };
+        }
+
+        return vbos;
+    }
+
+    /**
+     * GPGPUプロセス開始
+     * ※並列実行は出来ないので注意
+     */
+    beginProcess(primitiveMode) {
+        if (this.process_step != 0) {
+            return;
+        }
+
+        const gl = this._getContext();
+
+        // 0 / 1で切り替え
+        this.flip_index = (this.flip_index + 1) % 2;
+
+        const write_index = 1 - this.flip_index;
+        const read_index = this.flip_index;
+
+        this.use();
+
+        let feedback_index = 0;
+        for (let key in this.transform_feedback_vertex_buffer_objects) {
+            const transform_feedback_vbo = this.transform_feedback_vertex_buffer_objects[key];
+            const read_vbo = transform_feedback_vbo.datas[read_index];
+            const write_vbo = transform_feedback_vbo.datas[write_index];
+
+            // まず読み込みVBOをシェーダーに設定
+            this._setVertexAttributeLowMoudle(transform_feedback_vbo.location, transform_feedback_vbo.stride, read_vbo);
+            // 書き込みVBOを設定
+            {
+                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, feedback_index, write_vbo);
+                feedback_index++;
+            }
+        }
+
+        // 描画機能であるラスタライザーを無効にする
+        gl.enable(gl.RASTERIZER_DISCARD);
+        // TransformFeedback開始
+        gl.beginTransformFeedback(primitiveMode);
+
+        this.process_step = 1;
+        this.write_vbo_index = write_index;
+    }
+
+    /**
+     * GPGPUプロセス終了
+     */
+    endProcess() {
+        if (this.process_step != 1) {
+            return;
+        }
+
+        // beginProcessメソッドで実行したもろもろ終了させる
+        const gl = this._getContext();
+
+        gl.disable(gl.RASTERIZER_DISCARD);
+        gl.endTransformFeedback();
+
+        // バインド解除
+        {
+            let feedback_index = 0;
+            for (let key in this.transform_feedback_vertex_buffer_objects) {
+                const vbo = this.transform_feedback_vertex_buffer_objects[key];
+
+                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, feedback_index, null);
+                feedback_index++;
+            }
+        }
+
+        this.process_step = 0;
+    }
+
+    /**
+     * シェーダープログラムのリンク
+     */
+    _link(program) {
+        const gl = this._getContext();
+
+        // TODO: TransoformFeedback設定をする
+        // shader link前にしないとバグるらしい
+        gl.transformFeedbackVaryings(program, this.varying_names, gl.SEPARATE_ATTRIBS);
+
+        return super._link(program);
+    }
+}
+
+/**
+ * シェーダーフレームを組み合わせた特殊シェーダー
+ * Transformfeedback用のシェーダーを組み合わせて使う
+ * TODO: 作成中
+ */
+class ShaderFrameComposite {
+    constructor(render_shader_frames, transform_feedback_shader_frames) {
+        // 実行優先度でソートする
+        this.render_shader_frames = render_shader_frames.sort((a, b) => a.priority - b.priority);
+        this.transform_feedback_shader_frames = transform_feedback_shader_frames.sort((a, b) => a.priority - b.priority);
+    }
+
+    dispose() {
+        this.render_shader_frames = [];
+        this.transform_feedback_shader_frames = [];
+    }
+
+    execute(primitive_mode, transform_feedback_event_draw, render_event_draw) {
+        // TransformFeedbackから先に実行
+        {
+            this.transform_feedback_shader_frames.forEach((v) => {
+                const shader = v.shader;
+                shader.beginProcess(primitive_mode);
+
+                transform_feedback_event_draw(primitive_mode, shader);
+
+                shader.endProcess();
+            });
+        }
+
+        // Renderを後に実行
+        {
+            this.render_shader_frames.forEach((v) => {
+                const shader = v.shader;
+                shader.beginProcess();
+                // TODO: TransformFeedbackのVBOを使ってVBO更新
+                {
+                    this.transform_feedback_shader_frames.forEach((transform_feedback) => {
+                        const transform_shader = transform_feedback.shader;
+                        const vbo_map = transform_shader.getFeedbackVBOMap();
+                        for (let attribute_name in vbo_map) {
+                            // shaderと対応しているattribute_nameにVBOを設定
+                            if (shader.isVertexAttribute(attribute_name))
+                                shader.updateVertexAttributeAndExternalVBO(attribute_name, vbo_map[attribute_name]);
+                        }
+                    });
+                }
+
+                render_event_draw(primitive_mode, shader);
+
+                shader.endProcess();
+            });
+        }
     }
 }
 
@@ -927,13 +1252,15 @@ class WebGLDataContainer {
      */
     constructor(canvas) {
         // シェーダーフレーム一覧
-        this.shader_frames = [];
+        this.shader_frames = {};
+        this.shader_transform_feedback_frames = {};
+        this.shader_composite_frames = {};
 
         // ロードしたテクスチャ一覧
-        this.textures = [];
+        this.textures = {};
 
         // レンダーテクスチャー一覧
-        this.render_textures = [];
+        this.render_textures = {};
 
         this.canvas = null;
         this.gl_context = null;
@@ -967,7 +1294,15 @@ class WebGLDataContainer {
 
         // canvasからWebGLコンテキスト取得
         // canvas内にWebGLコンテキストがあるのか
-        this.gl_context = this.canvas.getContext('webgl');
+        //        this.gl_context = this.canvas.getContext('webgl');
+        // WebGL2.0対応に切り替え
+        this.gl_context = this.canvas.getContext('webgl2');
+        if (this.gl_context == null) {
+            // 2.0が非対応なら1.0を取得
+            this.gl_context = this.canvas.getContext('webgl');
+        }
+
+        // webgl非対応ならエラーを出す
         if (this.gl_context == null) {
             // WebGLのコンテキストが取得出来ないならエラー
             throw new Error('webgl not supported');
@@ -979,6 +1314,22 @@ class WebGLDataContainer {
      */
     dispose() {
         // メモリリークしないようにする
+        for (let key in this.shader_composite_frames) {
+            const frame = this.shader_composite_frames[key];
+            frame.dispose();
+            common_module.freeObject(frame);
+        }
+        common_module.freeObject(this.shader_composite_frames);
+        this.shader_composite_frames = {};
+
+        for (let key in this.shader_transform_feedback_frames) {
+            const frame = this.shader_transform_feedback_frames[key];
+            frame.dispose();
+            common_module.freeObject(frame);
+        }
+        common_module.freeObject(this.shader_transform_feedback_frames);
+        this.shader_transform_feedback_frames = {};
+
         for (let key in this.shader_frames) {
             const shader_frame = this.shader_frames[key];
 
@@ -1006,8 +1357,51 @@ class WebGLDataContainer {
         this.render_textures = {};
     }
 
+    /**
+     * シェーダーフレームを複数組み合わせたコンボジットシェーダーフレームを作成
+     * TODO: 作成中
+     */
+    createShaderFrameComposite(name, render_shader_datas, transform_feedback_shader_datas) {
+        if (name in this.shader_composite_frames) {
+            throw new Error('compoise shaders map key duplicate');
+        }
+
+        let render_shader_frames = [];
+        let transform_feedback_shader_frames = [];
+        render_shader_datas.forEach((v) => {
+            let shader_frame = this.getShaderFrame(v.shader_name);
+
+            render_shader_frames.push({
+                priority: v.priority,
+                shader: shader_frame,
+            });
+        });
+
+        transform_feedback_shader_datas.forEach((v) => {
+            let shader_frame = this.getTransformFeedbackShaderFrame(v.shader_name);
+
+            transform_feedback_shader_frames.push({
+                priority: v.priority,
+                shader: shader_frame,
+            });
+        });
+
+        let composite = new ShaderFrameComposite(render_shader_frames, transform_feedback_shader_frames);
+        this.shader_composite_frames[name] = composite;
+
+        return composite;
+    }
+
     getShaderFrame(name) {
         return this.shader_frames[name];
+    }
+
+    getTransformFeedbackShaderFrame(name) {
+        return this.shader_transform_feedback_frames[name];
+    }
+
+    getCompositeShaderFrame(name) {
+        return this.shader_composite_frames[name];
     }
 
     /**
@@ -1021,14 +1415,41 @@ class WebGLDataContainer {
             }
             this.shader_frames[name] = null;
 
-            let shader_frame = new ShaderFrame(this.gl_context);
+            let shader_frame = new ShaderFrame(this.gl_context, name);
             shader_frame.load(
                 vs_file_path,
-                fs_file_path
+                fs_file_path,
+                null
             ).then(() => {
                 // ロード成功したら管理リストに追加
                 this.shader_frames[name] = shader_frame;
                 resolve(this.shader_frames[name]);
+            });
+        });
+    }
+
+    /**
+     * transformfeedback用のシェーダー作成
+     */
+    createShaderFrameAndTransformFeedback(name, vs_file_path, fs_file_path, varyingNames) {
+        return new Promise((resolve, reject) => {
+            if (name in this.shader_transform_feedback_frames) {
+                throw new Error('transform feedback shaders array key duplicate');
+            }
+            this.shader_transform_feedback_frames[name] = null;
+
+            let shader_frame = new ShaderTransformFeedbackFrame(this.gl_context);
+            shader_frame.load(
+                vs_file_path,
+                fs_file_path,
+                varyingNames
+            ).then(() => {
+                // ロード成功したら管理リストに追加
+                this.shader_transform_feedback_frames[name] = shader_frame;
+                resolve(this.shader_transform_feedback_frames[name]);
+            }).catch((ex) => {
+                common_module.noticeError(ex);
+                reject(ex);
             });
         });
     }
