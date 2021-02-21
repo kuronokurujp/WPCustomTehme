@@ -8,6 +8,7 @@ class texture extends Canvas3D {
 
         this.shader_frame_name = 'texture';
         this.texture_name = 'texture';
+        this.texture_2_name = 'texture02';
 
         // 3Dカメラの制御
         this.mouseInterctionCamera = CameraController.createMouseInterction();
@@ -134,9 +135,17 @@ class texture extends Canvas3D {
                 this.uniform_datas.texture_unit.datas,
                 this.data_file_path + '/sample.jpg');
 
+            // テクスチャをロード
+            let load_texture_2_promise = data_container.createTextures(
+                this.texture_2_name,
+                this.uniform_datas.texture_unit.datas,
+                this.data_file_path + '/sample_2.jpg');
+
             Promise.all(
                 [load_shader_promise,
-                load_texture_promise])
+                load_texture_promise,
+                load_texture_2_promise,
+            ])
                 .then((load_results) => {
                     const shader_frame = load_results[0];
                     // vboを作成
@@ -157,10 +166,6 @@ class texture extends Canvas3D {
                         const uniform_data = this.uniform_datas[key];
                         shader_frame.createUniformObject(uniform_data.name, uniform_data.type);
                     }
-
-                    const texture_frame = load_results[1];
-                    // ロードしたテクスチャを有効化
-                    texture_frame.enableBindTexture(true);
 
                     reslove();
                 });
@@ -240,11 +245,22 @@ class texture extends Canvas3D {
             const color_uniform_data = this.uniform_datas.global_color;
             shader_frame.setUniformData(color_uniform_data.name, color_uniform_data.datas);
 
-            const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
-            shader_frame.setUniformData(mvp_mtx_uniform_data.name, mvp_mtx_uniform_data.datas);
-
             const texture_unity_uniform_data = this.uniform_datas.texture_unit;
             shader_frame.setUniformData(texture_unity_uniform_data.name, texture_unity_uniform_data.datas);
+        }
+
+        {
+            let move_mat = createTranslationMatrix4x4(new Vector3(1.0, 0.0, 0.0));
+            this.mat.mul(move_mat);
+
+            const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
+            shader_frame.setUniformData(mvp_mtx_uniform_data.name, this.mat.m);
+        }
+
+        {
+            const texture_frame = this.webGL_data_container.getTexture(this.texture_2_name);
+            // ロードしたテクスチャを有効化
+            texture_frame.enableBindTexture(true);
         }
 
         // 転送情報を使用して頂点を画面にレンダリング
@@ -257,5 +273,32 @@ class texture extends Canvas3D {
             // インデックスバッファで描画
             gl.drawElements(gl.TRIANGLES, this.ido_buffer_data.length, gl.UNSIGNED_SHORT, 0);
         }
+
+        {
+            const texture_frame = this.webGL_data_container.getTexture(this.texture_name);
+            // ロードしたテクスチャを有効化
+            texture_frame.enableBindTexture(true);
+        }
+
+        {
+            let move_mat = createTranslationMatrix4x4(new Vector3(-2.0, 0.0, 0.0));
+            this.mat.mul(move_mat);
+
+            const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
+            shader_frame.setUniformData(mvp_mtx_uniform_data.name, this.mat.m);
+        }
+
+        // 転送情報を使用して頂点を画面にレンダリング
+        // 第三引数に頂点数を渡している
+        if (this.is_face === false) {
+            const vbo_positions = this.vbo_datas.positions;
+            gl.drawArrays(gl.POINTS, 0, vbo_positions.datas.length / vbo_positions.stride_count);
+        }
+        else {
+            // インデックスバッファで描画
+            gl.drawElements(gl.TRIANGLES, this.ido_buffer_data.length, gl.UNSIGNED_SHORT, 0);
+        }
+
+
     }
 }

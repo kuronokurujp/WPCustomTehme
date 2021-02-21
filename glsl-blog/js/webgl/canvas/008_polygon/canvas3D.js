@@ -204,7 +204,6 @@ class polygon extends Canvas3D {
         }
 
         // 転送情報を使用して頂点を画面にレンダリング
-        // 第三引数に頂点数を渡している
         // インデックスバッファで描画
         gl.drawElements(gl.TRIANGLES, this.idx_datas.length, gl.UNSIGNED_SHORT, 0);
     }

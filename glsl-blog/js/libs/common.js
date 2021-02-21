@@ -151,6 +151,12 @@ function common() {
             return parseInt(str, 16) / 255.0;
         });
     }
+
+    // 引数の型を名前で返す
+    this.typeOf = function(obj) {
+        var toString = Object.prototype.toString;
+        return toString.call(obj).slice(8, -1).toLowerCase();
+    }
 }
 
 // 共通モジュールの参照クラス

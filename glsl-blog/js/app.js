@@ -28,7 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
         common_module.loadScript(g_app_model.js_root_path + '/js/libs/twekapane/tweakpane-1.5.6.min.js'),
     ]).then((loadScripts) => {
         const container = new WebGLDataContainer('js-webgl-canvas');
-        const view = new WebGLView();
+        const view = container.createView();
         const viewModel = WebGLModel.createViewModel(g_app_model.js_root_path, g_app_model.canvas_names, container);
         const mouseModel = WebGLModel.createMouseModel(container.canvas);
         webgl_controller_instance = new WebGLController(viewModel, mouseModel, view);

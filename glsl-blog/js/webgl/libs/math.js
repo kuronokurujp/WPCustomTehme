@@ -212,6 +212,8 @@ function createScaleMatrix4x4(scaleX, scaleY, scaleZ) {
  * @param {*} vec3 
  */
 function createTranslationMatrix4x4(vec3) {
+    // TODO: 意図した引数かチェックする
+
     let mat = new Matrix4x4();
 
     mat.setColumns(
