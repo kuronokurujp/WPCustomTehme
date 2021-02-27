@@ -156,7 +156,7 @@ class texture extends Canvas3D {
                             location.name,
                             location.stride_count,
                             location.datas);
-                    };
+                    }
 
                     // idoを作成
                     shader_frame.createIndexBufferObject('index', this.ido_buffer_data);

@@ -213,6 +213,9 @@ function createScaleMatrix4x4(scaleX, scaleY, scaleZ) {
  */
 function createTranslationMatrix4x4(vec3) {
     // TODO: 意図した引数かチェックする
+    console.assert(vec3.hasOwnProperty('x'));
+    console.assert(vec3.hasOwnProperty('y'));
+    console.assert(vec3.hasOwnProperty('z'));
 
     let mat = new Matrix4x4();
 

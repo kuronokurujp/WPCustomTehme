@@ -56,6 +56,7 @@ class ShaderFrame {
         this.index_buffer_objects = {};
 
         this.gl_context = gl_context;
+        this.name = name;
     }
 
     /**
@@ -81,7 +82,7 @@ class ShaderFrame {
                     if (this._link(this.shader_program)) {
                         resolve(this);
                     } else {
-                        reject('error shader programu link');
+                        reject('error shader program link');
                     }
                 });
         });
@@ -277,13 +278,13 @@ class ShaderFrame {
      */
     updateVertexAttributeAndExternalVBO(target_attribute_name, vbo) {
         if (!(target_attribute_name in this.vertex_buffer_objects)) {
-            throw new Error('targer attribute name[' + target_attribute_name + '] is not');
+            throw new Error('target attribute name[' + target_attribute_name + '] is not');
         }
-        let targert_vbo_object = this.vertex_buffer_objects[target_attribute_name];
+        let target_vbo_object = this.vertex_buffer_objects[target_attribute_name];
 
         this._setVertexAttributeLowMoudle(
-            targert_vbo_object.location,
-            targert_vbo_object.stride,
+            target_vbo_object.location,
+            target_vbo_object.stride,
             // 設定したVBOのbufferを設定
             vbo.data
         );
@@ -415,7 +416,7 @@ class ShaderFrame {
         // OpenGLにシェーダープログラムをリンクさせる
         gl.linkProgram(program);
 
-        // シェーダープログラムがOpgnGLとリンクになっているかチェック
+        // シェーダープログラムがOpenGLとリンクになっているかチェック
         if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
             // リンク状態であればシェーダープログラムを使用状態にする
             gl.useProgram(program);
@@ -535,7 +536,7 @@ class ShaderFrame {
      */
     _loadShader(shader_file_path_array) {
         if (Array.isArray(shader_file_path_array) !== true) {
-            throw new Error('invalid argument it is not arrya');
+            throw new Error('invalid argument it is not array');
         }
 
         const promises = shader_file_path_array.map((path) => {
@@ -544,7 +545,7 @@ class ShaderFrame {
              * プラウザーのセキュリティにひっかかり出来ない
              * 特定のプラウザーであればできるが、専用対応になって汎用性がない
              */
-            // fecthでリソースの非同期ロード
+            // fetchでリソースの非同期ロード
             // fetchメソッドはサーバーからリソースを非同期ロード
             // URLを指定してロードできる
             // なのでサーバー上で実行されていないとエラーになる
@@ -746,7 +747,7 @@ class ShaderTransformFeedbackFrame extends ShaderFrame {
     _link(program) {
         const gl = this._getContext();
 
-        // TransoformFeedback設定をする
+        // TransformFeedback設定をする
         // shader link前にしないとバグるらしい
         gl.transformFeedbackVaryings(program, this.varying_names, gl.SEPARATE_ATTRIBS);
 
@@ -755,14 +756,14 @@ class ShaderTransformFeedbackFrame extends ShaderFrame {
 }
 
 /**
- * テクスチャに浮動小数点データを書き込んだVetexTextureFecthを扱うシェーダーフレーム
+ * テクスチャに浮動小数点データを書き込んだVertexTextureFetchを扱うシェーダーフレーム
  * 書き込むテクスチャを指定
  * テクスチャのリセット書き込み用と毎回データを書き込むようの二つのシェーダーが必要
  * TODO: 作り中
  * 使用するテクスチャスロット固定で決める
  * 0 - 1までのスロットを指定
  */
-class ShaderFrameVertexTextureFecth {
+class ShaderFrameVertexTextureFetch {
     constructor(
         gl_context,
         gl_ext_context,
@@ -780,9 +781,10 @@ class ShaderFrameVertexTextureFecth {
         console.assert(name != null);
 
         this.view = view;
+        this.name = name;
 
         this.reset_shader_frame = new ShaderFrame(gl_context, name + '_reset');
-        this.data_update_shader_frame = new ShaderFrame(gl_context, name + '_updata');
+        this.data_update_shader_frame = new ShaderFrame(gl_context, name + '_update');
 
         this.gl = gl_context;
         this.gl_ext = gl_ext_context;
@@ -791,7 +793,7 @@ class ShaderFrameVertexTextureFecth {
         this.use_texture_slot_02 = use_texture_slot_02;
         // slotがダブっているとアウト
         if (this.use_texture_slot_01 == this.use_texture_slot_02) {
-            throw new Error('duplicate use_texture_slot_01(' + this.use_texture_slot_01 + ')==use_texute_slot_02(' + this.use_texture_slot_02 + ')');
+            throw new Error('duplicate use_texture_slot_01(' + this.use_texture_slot_01 + ')==use_texture_slot_02(' + this.use_texture_slot_02 + ')');
         }
 
         this.flip_index = 0;
@@ -801,7 +803,8 @@ class ShaderFrameVertexTextureFecth {
         this.data_height_size = height;
 
         this.data_textures = {};
-        this.use_texture_key = -1;
+        this.back_texture_key = -1;
+        this.front_texture_key = -1;
 
         // フレームバッファシェーダーのデータ構築
         {
@@ -911,8 +914,8 @@ class ShaderFrameVertexTextureFecth {
                 {
                     {
                         for (let key in this.shader_uniform_datas) {
-                            const unifomr_data = this.shader_uniform_datas[key];
-                            this.reset_shader_frame.setUniformData(unifomr_data.name, unifomr_data.datas);
+                            const uniform_data = this.shader_uniform_datas[key];
+                            this.reset_shader_frame.setUniformData(uniform_data.name, uniform_data.datas);
                         }
                     }
 
@@ -925,7 +928,6 @@ class ShaderFrameVertexTextureFecth {
                         {
                             gl.clearColor(0.0, 0.0, 0.0, 0.0);
                             gl.clear(gl.COLOR_BUFFER_BIT);
-                            // テストで描画してみる。面が出るのが正解
                             gl.drawElements(gl.TRIANGLES, this.vertex_indexs.length, drawElementsSize, 0);
                         }
                         texture.endWrite();
@@ -963,67 +965,84 @@ class ShaderFrameVertexTextureFecth {
         this.gl_ext = null;
     }
 
+    // フロント・バックテクスチャを入れ替え
+    flip() {
+        if (this.process_step != 0) {
+            return false;
+        }
+
+        // フロントとバックのテクスチャのキー値を取得
+        {
+            // バックとフロントを入れ替える
+            this.flip_index = (this.flip_index + 1) % 2;
+
+            const front_index = this.flip_index;
+            let count = 0;
+            for (let key in this.data_textures) {
+                if (count === front_index) {
+                    this.front_texture_key = key;
+                } else {
+                    this.back_texture_key = key;
+                }
+
+                ++count;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * GPGPUプロセス開始
      * ※並列実行は出来ないので注意
      */
-    beginProcess() {
+    beginProcess(before_process) {
         if (this.process_step != 0) {
             return;
         }
 
         const gl = this.gl;
 
-        // 0 / 1で切り替え
-        this.flip_index = (this.flip_index + 1) % 2;
-
-        const write_index = this.flip_index;
-        // 使用するtexture_data_index
-
+        // 更新用のシェーダー実行
+        // データサイズに合わせてビューサイズ変更、使用が終わったら元に戻さないとだめ
         this.view.setViewPort(this.data_width_size, this.data_height_size);
         {
-            let count = 0;
-            let write_texture_key = -1;
-            // 書き込み対象テクスチャに書き込む
-            for (let key in this.data_textures) {
-                if (count != write_index) {
-                    this.use_texture_key = key;
-                } else {
-                    write_texture_key = key;
-                }
-
-                ++count;
-            }
-
-            console.assert(write_texture_key != -1);
-
             this.data_update_shader_frame.beginProcess();
             {
-                // TODO: 参照テクスチャは有効にして前フレームデータテクスチャとしても利用する
-                const read_texture = this.data_textures[this.use_texture_key];
-                read_texture.enable(this.use_texture_key);
-
+                // フロント側で内容を更新するためにバックデータテクスチャを利用するので有効にしておく
                 {
+                    const back_texture = this.data_textures[this.back_texture_key];
+                    back_texture.enable();
+
                     const uniform_prev_texture_unit = this.shader_uniform_datas.prev_texture_unit;
-                    this.data_update_shader_frame.setUniformData(uniform_prev_texture_unit.name, read_texture.getTextureSlot());
+                    this.data_update_shader_frame.setUniformData(uniform_prev_texture_unit.name, back_texture.getTextureSlot());
+                    this.data_update_shader_frame.setUniformData(
+                        this.shader_uniform_datas.resolution.name,
+                        this.shader_uniform_datas.resolution.datas);
                 }
 
-                const drawElementsSize = this.data_update_shader_frame.getIndexBufferElementSizeType();
+                // 実行前に使用者が更新が行えるようにする
+                if (before_process != null) {
+                    before_process(this.data_update_shader_frame);
+                }
 
-                const write_texture = this.data_textures[write_texture_key];
-                write_texture.beginWrite();
+                // 描画コールを呼んでフロントテクスチャにデータを書き込む
                 {
-                    gl.drawElements(gl.TRIANGLES, this.vertex_indexs.length, drawElementsSize, 0);
-                }
-                write_texture.endWrite();
-            }
-        }
-        this.data_update_shader_frame.endProcess();
+                    const drawElementsSize = this.data_update_shader_frame.getIndexBufferElementSizeType();
 
+                    const write_texture = this.data_textures[this.front_texture_key];
+                    write_texture.beginWrite();
+                    {
+                        gl.drawElements(gl.TRIANGLES, this.vertex_indexs.length, drawElementsSize, 0);
+                    }
+                    write_texture.endWrite();
+                }
+            }
+            this.data_update_shader_frame.endProcess();
+        }
         this.view.updateViewPortFromFullScreenSize();
 
         this.process_step = 1;
-
     }
 
     /**
@@ -1039,20 +1058,38 @@ class ShaderFrameVertexTextureFecth {
         // CPUとGPUは同期をしていないからだろう
         // GPUの描画処理が入る前に無効にしてしまう
 
-        this.use_texture_key = -1;
         this.process_step = 0;
     }
 
     /**
-     * データテクスチャのスロット取得
+     * フロントのデータテクスチャのスロット取得
      */
-    useTextureSlot() {
-        if (this.use_texture_key == -1) {
-            throw new Error('error disable data texture slot => ' + this.use_texture_key);
+    getFrontTextureSlot() {
+        if (this.front_texture_key == -1) {
+            throw new Error('error disable data texture slot => ' + this.front_texture_key);
         }
 
-        const read_texture = this.data_textures[this.use_texture_key];
-        return read_texture.getTextureSlot();
+        const front_texture = this.data_textures[this.front_texture_key];
+        return front_texture.getTextureSlot();
+    }
+
+    /**
+     * フロントテクスチャを有効にする
+     */
+    activeFrontTexture() {
+        const front_texture = this.data_textures[this.front_texture_key];
+        front_texture.enable();
+    }
+
+    /**
+     * 更新シェーダーに新規Uniformデータを作成
+     * @param name
+     * @param type
+     */
+    createUniformDataToUpdateShader(name, type) {
+        console.assert(this.data_update_shader_frame != null);
+
+        this.data_update_shader_frame.createUniformObject(name, type);
     }
 }
 
@@ -1091,7 +1128,8 @@ class ShaderFrameComposite {
     execute(
         primitive_mode,
         transform_feedback_event_draw,
-        render_event_draw) {
+        render_event_draw,
+        vtf_begin_process = null) {
         // TransformFeedbackから先に実行
         {
             if (this.transform_feedback_shader_frames != null) {
@@ -1106,15 +1144,24 @@ class ShaderFrameComposite {
             }
         }
 
-        // VertexTextureFecthを開始
+        // VertexTextureFetchを開始
         // TODO: 使用中のTextureSlotをリストアップして渡す
-        let use_texture_slots = [];
+        let vtf_use_texture_slots = {};
         {
+            // まずテクスチャを入れ替え
             if (this.vertex_texture_fetch_shader_frames != null) {
                 this.vertex_texture_fetch_shader_frames.forEach((v) => {
                     const shader = v.shader;
-                    shader.beginProcess();
-                    use_texture_slots.push(shader.useTextureSlot());
+                    shader.flip();
+                });
+            }
+
+            // その後書き込み開始
+            if (this.vertex_texture_fetch_shader_frames != null) {
+                this.vertex_texture_fetch_shader_frames.forEach((v) => {
+                    const shader = v.shader;
+                    shader.beginProcess(vtf_begin_process);
+                    vtf_use_texture_slots[shader.name] = shader.getFrontTextureSlot();
                 });
             }
         }
@@ -1137,7 +1184,7 @@ class ShaderFrameComposite {
                     });
                 }
 
-                render_event_draw(primitive_mode, shader, use_texture_slots);
+                render_event_draw(primitive_mode, shader, vtf_use_texture_slots);
 
                 shader.endProcess();
             });
@@ -1561,7 +1608,7 @@ class DataTexture {
     create(texture_slot, width, height) {
         console.assert(width >= 0);
         console.assert(height >= 0);
-        console.assert(texture_slot >= 0);
+        console.assert(texture_slot >= this.gl.TEXTURE0);
 
         const gl = this.gl;
         if (gl == null) {
@@ -1612,12 +1659,11 @@ class DataTexture {
 
     enable(slot) {
         console.assert(this.texture != null);
+        console.assert(this.texture_slot >= this.gl.TEXTURE0);
 
         const gl = this.gl;
-        gl.activeTexture(slot);
+        gl.activeTexture(this.texture_slot);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
-
-        this.texture_slot = slot;
     }
 
     disable() {
@@ -1627,8 +1673,6 @@ class DataTexture {
         const gl = this.gl;
         gl.activeTexture(this.texture_slot);
         gl.bindTexture(gl.TEXTURE_2D, null);
-
-        this.texture_slot = -1;
     }
 
     getTextureSlot() {
@@ -1994,7 +2038,7 @@ class WebGLDataContainer {
         transform_feedback_shader_datas = [],
         vtf_shader_datas = []) {
         if (name in this.shader_composite_frames) {
-            throw new Error('compoise shaders map key duplicate');
+            throw new Error('composite shaders map key duplicate');
         }
 
         let render_shader_frames = [];
@@ -2044,11 +2088,11 @@ class WebGLDataContainer {
         use_slot_01, use_slot_02) {
         return new Promise((resolve) => {
             if (name in this.shader_vtf_frames) {
-                throw new Error('shader vtf framess array key duplicate');
+                throw new Error('shader vtf frames array key duplicate');
             }
             this.shader_vtf_frames[name] = null;
 
-            let shader_frame = new ShaderFrameVertexTextureFecth(
+            let shader_frame = new ShaderFrameVertexTextureFetch(
                 this.gl_context,
                 this.gl_ext_context,
                 name,
@@ -2079,7 +2123,7 @@ class WebGLDataContainer {
 
     getTransformFeedbackShaderFrame(name) {
         if (typeof name === 'undefined') {
-            throw new Error("getTranformFeedbackShaderFrame find name is undefined");
+            throw new Error("getTransformFeedbackShaderFrame find name is undefined");
         }
 
         return this.shader_transform_feedback_frames[name];
@@ -2121,7 +2165,7 @@ class WebGLDataContainer {
     }
 
     /**
-     * transformfeedback用のシェーダー作成
+     * TransFormFeedback用のシェーダー作成
      */
     createShaderFrameAndTransformFeedback(name, vs_file_path, fs_file_path, varyingNames) {
         return new Promise((resolve, reject) => {
@@ -2171,7 +2215,6 @@ class WebGLDataContainer {
                     resolve(this.textures[name]);
                 })
                 .catch((error) => {
-                    throw error;
                     reject(error);
                 });
         });
