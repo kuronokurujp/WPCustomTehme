@@ -11,7 +11,7 @@
 
 ?>
   <!-- Footer -->
-  <footer id="colophon" class="py-5 bg-black">
+  <footer id="colophon" class="py-5 bg-black js_dairy_view" style="display: block;">
     <div class="container">
       <p class="m-0 text-center text-white small">Copyright &copy; tonakaiJP 2021</p>
     </div>
@@ -25,10 +25,15 @@
 
   <!-- #weggl controller javascript -->
   <?php // WegGL制御コード ?>
+  <script src="<?php echo get_template_directory_uri() ?> /js/libs/common.js"></script>
+  <script src="<?php echo get_template_directory_uri() ?> /js/app_model.js"></script>
   <script>
-    var g_javascript_filepath = "<?php echo get_template_directory_uri()?>";
+    var g_app_model = new AppModel("<?php echo get_template_directory_uri()?>");
+    <?php foreach (CustomFieldDairyThumbnail::get_canvas_name_list() as $name): ?>
+      g_app_model.addCanvasName("<?php echo esc_html($name); ?>");
+    <?php endforeach; ?>
+
   </script>
-  <script src="<?php echo get_template_directory_uri() ?> /js/common.js"></script>
   <script src="<?php echo get_template_directory_uri() ?> /js/app.js"></script>
   <!-- weggl controller javascript# -->
 

@@ -1,0 +1,13 @@
+.thumbnailImg {
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.thumbnailImg:hover {opacity: 0.7;}
+
+#canvas_param_pane {
+    position: absolute;
+    top: 16px;
+    right: 32px;
+}
