@@ -1373,6 +1373,7 @@ class WebGLView {
         // 開始時間を取得
         this.begin_time = Date.now();
     }
+    
 
     /**
      * 有効化

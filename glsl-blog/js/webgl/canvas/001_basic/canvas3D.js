@@ -40,6 +40,8 @@ class basic extends Canvas3D {
      * メモリやオブジェクトの解放
      */
     dispose() {
+
+
         this.webGL_data_container = null;
         common_module.freeObject(this.point_sprite_positions);
         this.point_sprite_positions = null;
