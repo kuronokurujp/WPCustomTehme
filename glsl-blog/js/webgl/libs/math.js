@@ -10,6 +10,16 @@
 const RADIANS_UNIT = Math.PI / 180.0;
 const INVERT_RADIANS_UNIT = 180.0 / Math.PI;
 
+
+/**
+ * 最小を含み最大未満のランダム値を取得
+ */
+function RandomRange(min, max) {
+    let length = (max - min);
+    let r = Math.random();
+    return (r * length) + min;
+}
+
 /**
  * ラジアンから角度に変換
  */
@@ -202,6 +212,11 @@ function createScaleMatrix4x4(scaleX, scaleY, scaleZ) {
  * @param {*} vec3 
  */
 function createTranslationMatrix4x4(vec3) {
+    // TODO: 意図した引数かチェックする
+    console.assert(vec3.hasOwnProperty('x'));
+    console.assert(vec3.hasOwnProperty('y'));
+    console.assert(vec3.hasOwnProperty('z'));
+
     let mat = new Matrix4x4();
 
     mat.setColumns(
