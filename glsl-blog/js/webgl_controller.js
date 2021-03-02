@@ -20,8 +20,8 @@ class WebGLController {
 
             this.viewModel.init()
                 .then(() => {
-                    // 初期画面を表示
-                    var showAction = this.actionShow(this.viewModel.getCanvasNameFromCanvasNameList(0));
+                    // カールノイズを初期画面にする
+                    var showAction = this.actionShow(this.viewModel.getFindCanvasNameFromCanvasNameList('curl'));
                     if (showAction != null) {
                         showAction
                             .then(() => {
