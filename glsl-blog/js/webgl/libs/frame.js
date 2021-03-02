@@ -258,12 +258,12 @@ class ShaderFrame {
 
     beginProcess() {
         this.use();
-        // TODO: ここでバッファをバインドのみように変える
+        // ここでバッファをバインドのみように変える
         this.updateVertexAttributeAndIndexBuffer();
     }
 
     endProcess() {
-        // TODO: すでに描画が終わっているのでバインドしたのをクリアするように変える
+        // すでに描画が終わっているのでバインドしたのをクリアするように変える
     }
 
     /**
@@ -759,7 +759,6 @@ class ShaderTransformFeedbackFrame extends ShaderFrame {
  * テクスチャに浮動小数点データを書き込んだVertexTextureFetchを扱うシェーダーフレーム
  * 書き込むテクスチャを指定
  * テクスチャのリセット書き込み用と毎回データを書き込むようの二つのシェーダーが必要
- * TODO: 作り中
  * 使用するテクスチャスロット固定で決める
  * 0 - 1までのスロットを指定
  */
@@ -1096,7 +1095,6 @@ class ShaderFrameVertexTextureFetch {
 /**
  * シェーダーフレームを組み合わせた特殊シェーダー
  * Transformfeedback用のシェーダーを組み合わせて使う
- * TODO: 作成中
  */
 class ShaderFrameComposite {
     /**
@@ -1145,7 +1143,7 @@ class ShaderFrameComposite {
         }
 
         // VertexTextureFetchを開始
-        // TODO: 使用中のTextureSlotをリストアップして渡す
+        // 使用中のTextureSlotをリストアップして渡す
         let vtf_use_texture_slots = {};
         {
             // まずテクスチャを入れ替え
