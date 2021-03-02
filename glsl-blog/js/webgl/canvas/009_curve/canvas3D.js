@@ -56,7 +56,6 @@ class curve extends Canvas3D {
                     const VERTEX_WIDTH = 1.0;  // 頂点が並ぶ範囲の広さ
 
                     // ループ数が多くて数フレーム画面がフリーズする
-                    // TODO: 非同期にするように対策するかも
                     for (let i = 0; i < VERTEX_COUNT; ++i) {
                         // 0.0 - 1.0の値になる
                         let x = i / VERTEX_COUNT;

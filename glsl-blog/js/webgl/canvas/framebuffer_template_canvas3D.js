@@ -156,7 +156,7 @@ class FramebufferTemplateCanvas3D extends Canvas3D {
             render_texture.resize(render_data.window_width, render_data.window_height);
         }
 
-        // TODO: オフスクリーン描画をする
+        // オフスクリーン描画をする
         render_texture.writeRendering(() => {
             // シェーダー更新
             const shader_frame = webGL_data_container.getShaderFrame(this.shader_frame_name);

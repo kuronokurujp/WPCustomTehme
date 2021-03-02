@@ -118,6 +118,14 @@ let WebGLModel = {
                 return this.canvas_names[index];
             }
 
+            getFindCanvasNameFromCanvasNameList(filter_name) {
+                const found = this.canvas_names.find(x => x.indexOf(filter_name) !== -1);
+                if (found == null)
+                    return this.canvas_names[0];
+
+                return found;
+            }
+
             /**
              * 指定キャンバス名でロードされているか返す
              */
@@ -140,9 +148,9 @@ let WebGLModel = {
                     // 指定したキャンバスをロードする
                     const load_script_file_path = canvas_root_directory + '/canvas3D.js';
 
-                    // TODO: クラス定義されていない場合はデフォルトのを利用
-                    // TODO: 先頭の数字を見る, 500 or 900番代はデフォルトキャンバスを利用
-                    //       エラーになった後でも良いが、エラー出力するまでラグがあるので切り替えがスムーズでなくなるのは問題
+                    // クラス定義されていない場合はデフォルトのを利用
+                    // 先頭の数字を見る, 500 or 900番代はデフォルトキャンバスを利用
+                    // エラーになった後でも良いが、エラー出力するまでラグがあるので切り替えがスムーズでなくなるのは問題
                     let default_canvas_flag = false;
                     {
                         const split = this.load_canvas_name.split('_');

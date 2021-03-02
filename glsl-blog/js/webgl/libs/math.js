@@ -212,7 +212,7 @@ function createScaleMatrix4x4(scaleX, scaleY, scaleZ) {
  * @param {*} vec3 
  */
 function createTranslationMatrix4x4(vec3) {
-    // TODO: 意図した引数かチェックする
+    // 意図した引数かチェックする
     console.assert(vec3.hasOwnProperty('x'));
     console.assert(vec3.hasOwnProperty('y'));
     console.assert(vec3.hasOwnProperty('z'));
@@ -482,8 +482,7 @@ class Matrix4x4 {
 
     /**
      * 行列の各要素にスケール
-     * TODO: 動作未検証
-     * @param {*} scale 
+     * @param {*} scale
      */
     scale(scale) {
         for (let i = 0; i < 4; ++i) {
@@ -496,7 +495,6 @@ class Matrix4x4 {
 
 /**
  * クォータニオン計算クラス
- * TODO: 実装途中
  */
 class Quaternion {
     constructor() {

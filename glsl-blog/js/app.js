@@ -58,9 +58,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const canvas_param_pane = document.getElementById('canvas_param_pane');
 
                 let view_flag = false;
+                let save_scroll_pos = [window.scrollX, window.scrollY];
                 if (back_view_on_button != null) {
                     back_view_on_button.onclick = function () {
                         view_flag = true;
+                        // スクロール位置を保存できる
+                        save_scroll_pos[0] = window.scrollX;
+                        save_scroll_pos[1] = window.scrollY;
+
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'none';
                         }
@@ -75,11 +80,15 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (back_view_off_button != null) {
                     back_view_off_button.onclick = function () {
                         view_flag = false;
+
                         for (let i = 0; i < dairy_views.length; ++i) {
                             dairy_views[i].style.display = 'block';
                         }
 
                         canvas_param_pane.style.display = 'none';
+
+                        // 保存したスクロール位置にする
+                        scrollTo(save_scroll_pos[0], save_scroll_pos[1]);
                     };
                 }
                 else {
