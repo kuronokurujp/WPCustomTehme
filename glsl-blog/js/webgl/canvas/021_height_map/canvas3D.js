@@ -10,6 +10,7 @@ class height_map extends Canvas3D {
         this.height_texture_name = 'height_texture';
 
         this.mouse_scale = 0.05;
+        this.mouse_move_x = 0.008;
 
         // VBO And IBO作成する情報リスト
         {
@@ -144,6 +145,15 @@ class height_map extends Canvas3D {
         this.ido_buffer_data = null;
     }
 
+    update(time) {
+        const mouse_uniform_data = this.uniform_datas.mouse;
+        mouse_uniform_data.datas[0] += this.mouse_move_x;
+        if (mouse_uniform_data.datas[0] >= 0.5)
+            this.mouse_move_x = -this.mouse_move_x;
+        else if (mouse_uniform_data.datas[0] <= 0.0)
+            this.mouse_move_x = -this.mouse_move_x;
+    }
+
     /**
      * 描画
      */
@@ -184,7 +194,7 @@ class height_map extends Canvas3D {
      * マウス座標は正規化デバイス座標系として引数から受け取れる
      */
     actionMoveMouse(xNDC, yNDC) {
-        const mouse_uniform_data = this.uniform_datas.mouse;
-        mouse_uniform_data.datas = [xNDC, yNDC];
+        //const mouse_uniform_data = this.uniform_datas.mouse;
+        //mouse_uniform_data.datas = [xNDC, yNDC];
     }
 }
