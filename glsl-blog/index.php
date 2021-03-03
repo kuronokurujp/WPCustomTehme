@@ -41,12 +41,11 @@ get_header();
 
 <!-- #main -->
 <main class="js_dairy_view" style="display: block;">
-	<!-- TODO: 枠をアルファで半透明にしたい -->
 	<header class="masthead text-center text-white">
 		<div class="masthead-content">
 			<div class="container">
-				<h1 class="masthead-heading mb-0"><?php bloginfo('name'); ?></h1>
-				<h2 class="masthead-subheading mb-0"><?php bloginfo('description'); ?></h2>
+				<h1 class="masthead-heading mb-0 display-3"><?php bloginfo('name'); ?></h1>
+				<h2 class="masthead-subheading mb-0 display-4"><?php bloginfo('description'); ?></h2>
 			</div>
 		</div>
 		<div class="bg-circle-1 bg-circle"></div>
@@ -72,10 +71,10 @@ get_header();
 	?>
 	<div class="text-center text-white">
 		<div class="container">
-			<h1 class="mb-0 display-4"><?php echo esc_html(get_post_type_object($the_prefact_query->query['post_type'])->label); ?></h1>
+			<h1 class="mb-0 lead"><?php echo esc_html(get_post_type_object($the_prefact_query->query['post_type'])->label); ?></h1>
 			<?php if ($the_prefact_query->have_posts()) : ?>
 				<?php while ($the_prefact_query->have_posts()) : $the_prefact_query->the_post(); ?>
-					<h2 class="mb-0"><?php the_content(); ?></h2>
+					<?php the_content(); ?>
 				<?php endwhile; ?>
 			<?php endif; ?>
 		</div>
@@ -103,7 +102,7 @@ get_header();
 					<div class="row align-items-center">
 						<div class="col-lg-6 order-lg-1">
 							<div class="p-5">
-								<h2 class="display-4"><?php the_title(); ?></h2>
+								<h1 class="lead"><?php the_title(); ?></h2>
 								<p><?php the_content(); ?></p>
 							</div>
 						</div>
@@ -162,10 +161,10 @@ get_header();
 	?>
 	<div class="text-center text-white">
 		<div class="container">
-			<h1 class="mb-0 display-4"><?php echo esc_html(get_post_type_object($the_afterword_query->query['post_type'])->label); ?></h1>
+			<h1 class="mb-0 lead"><?php echo esc_html(get_post_type_object($the_afterword_query->query['post_type'])->label); ?></h1>
 			<?php if ($the_afterword_query->have_posts()) : ?>
 				<?php while ($the_afterword_query->have_posts()) : $the_afterword_query->the_post(); ?>
-					<h2 class="mb-0"><?php the_content(); ?></h2>
+					<?php the_content(); ?>
 				<?php endwhile; ?>
 			<?php endif; ?>
 		</div>
