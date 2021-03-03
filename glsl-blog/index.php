@@ -27,8 +27,6 @@ get_header();
 				<input type="radio" name="options" id="js_back_off_view_button" autocomplete="off" checked>Back View Off
 			</label>
 		</div>
-
-		<div id="canvas_param_pane" style="display: none;"></div>
 	</div>
 </nav>
 
