@@ -61,6 +61,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 let save_scroll_pos = [window.scrollX, window.scrollY];
                 if (back_view_on_button != null) {
                     back_view_on_button.onclick = function () {
+                        if (view_flag)
+                            return;
+
                         view_flag = true;
                         // スクロール位置を保存できる
                         save_scroll_pos[0] = window.scrollX;
@@ -79,6 +82,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 if (back_view_off_button != null) {
                     back_view_off_button.onclick = function () {
+                        if (!view_flag)
+                            return;
+
                         view_flag = false;
 
                         for (let i = 0; i < dairy_views.length; ++i) {
