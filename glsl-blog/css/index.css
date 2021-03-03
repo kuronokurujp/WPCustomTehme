@@ -11,3 +11,49 @@
     top: 16px;
     right: 32px;
 }
+
+/*
+    表示するスクリーンサイズに応じてフォントサイズを変える
+    試す
+    参考サイト
+        https://note.com/artefactnote/n/n9d38dffbbce3
+*/
+/* 大デバイス（デスクトップ, 1200px 未満）*/
+@media (min-width: 992px) {
+    .title {
+        font-size: 7.0rem;
+    }
+    .dairy_title {
+        font-size: 3.5rem;
+    }
+}
+
+/* 中デバイス（タブレット, 992px 未満）*/
+@media (max-width: 991.98px) {
+    .title {
+        font-size: 4.0rem;
+    }
+    .dairy_title {
+        font-size: 3.5rem;
+    }
+}
+
+/* 小デバイス（横向きモバイル, 768px 未満）*/
+@media (max-width: 767.98px) {
+    .title {
+        font-size: 2.0rem;
+    }
+    .dairy_title {
+        font-size: 3.5rem;
+    }
+}
+
+/* 極小デバイス（縦向きモバイル, 576px 未満）*/
+@media (max-width: 575.98px) {
+    .title {
+        font-size: 1.0rem;
+    }
+    .dairy_title {
+        font-size: 2.5rem;
+    }
+}
