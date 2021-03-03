@@ -105,7 +105,8 @@ class night_scope extends FramebufferTemplateCanvas3D {
     }
 
     dispose() {
-        this.parame_pane.dispose();
+        if (this.parame_pane != null)
+            this.parame_pane.dispose();
         this.parame_pane = null;
 
         super.dispose();
