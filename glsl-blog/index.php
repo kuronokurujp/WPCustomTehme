@@ -120,7 +120,7 @@ get_header();
 									<?php if ($field_data->load($the_query->post->ID)) : ?>
 										<div class="col-md-4">
 											<div class="thumbnailImg">
-												<img class="img-fluid rounded-circle" id="js-canvas-thumbnail-img" value="<?php echo esc_html($field_data->get_webgl_canvas_data()); ?>" src="<?php echo wp_get_attachment_url($field_data->get_thumbnail_data()); ?>" alt="">
+												<img class="img-fluid rounded-circle border border-white" id="js-canvas-thumbnail-img" value="<?php echo esc_html($field_data->get_webgl_canvas_data()); ?>" src="<?php echo wp_get_attachment_url($field_data->get_thumbnail_data()); ?>" alt="">
 											</div>
 										</div>
 									<?php endif; ?>

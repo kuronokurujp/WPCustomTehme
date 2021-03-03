@@ -56,8 +56,6 @@ function common() {
         script.type = 'text/javascript';
         script.src = url;
 
-        // TODO: 失敗した場合の例外処理をいれた方がいい
-
         // ヘッダータグにロードするjsスクリプトを追記
         document.getElementsByTagName('head')[0].appendChild(script);
 
@@ -126,8 +124,6 @@ function common() {
         if (this.isObjectType(Error.name, obj)) {
             throw obj;
         }
-
-        // TODO: 他の型はどうしよう
     }
 
     /**

@@ -279,7 +279,7 @@ class curl_noize extends Canvas3D {
             },
             // vtf更新前イベント
             (vtf_shader_frame) => {
-                // TODO: VTFShaderに必要なuniform設定をする
+                // VTFShaderに必要なuniform設定をする
                 if (vtf_shader_frame.name.startsWith(this.vtf_velocity_frame_name)) {
                     // 速度シェーダーに前フレームの座標結果のテクスチャを設定
                     const vtf_position = this.webGL_data_container.getVtfShaderFrame(this.vtf_position_frame_name);
