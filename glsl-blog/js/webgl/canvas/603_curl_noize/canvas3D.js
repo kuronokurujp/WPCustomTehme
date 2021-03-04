@@ -21,7 +21,7 @@ class curl_noize extends Canvas3D {
         }
 
         // レンダリングするシェーダーのデータ構築
-        this.data_size_width = 256;
+        this.data_size_width = 128;
         this.data_size_height = this.data_size_width;
         {
             this.vbo_datas = {
