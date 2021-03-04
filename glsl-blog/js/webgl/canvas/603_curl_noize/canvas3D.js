@@ -21,7 +21,7 @@ class curl_noize extends Canvas3D {
         }
 
         // レンダリングするシェーダーのデータ構築
-        this.data_size_width = 128;
+        this.data_size_width = 256;
         this.data_size_height = this.data_size_width;
         {
             this.vbo_datas = {
@@ -275,7 +275,7 @@ class curl_noize extends Canvas3D {
                 }
 
                 const vbo_tex_coord = this.vbo_datas.tex_coord;
-                gl.drawArrays(private_mode, 0, vbo_tex_coord.datas.length);
+                gl.drawArrays(private_mode, 0, vbo_tex_coord.datas.length / vbo_tex_coord.stride_count);
             },
             // vtf更新前イベント
             (vtf_shader_frame) => {
