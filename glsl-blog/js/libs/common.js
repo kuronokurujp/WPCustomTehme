@@ -13,8 +13,6 @@
      * コンソールを利用できるか
      */
     function isConsole() {
-        return true;
-
         // ローカルファイルを呼び出している場合は
         if (loca.protocol === 'file:')
             return true;
