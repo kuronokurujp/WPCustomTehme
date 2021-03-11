@@ -275,7 +275,7 @@ class curl_noize extends Canvas3D {
                 }
 
                 const vbo_tex_coord = this.vbo_datas.tex_coord;
-                gl.drawArrays(private_mode, 0, vbo_tex_coord.datas.length);
+                gl.drawArrays(private_mode, 0, vbo_tex_coord.datas.length / vbo_tex_coord.stride_count);
             },
             // vtf更新前イベント
             (vtf_shader_frame) => {
