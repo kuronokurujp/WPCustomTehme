@@ -12,6 +12,7 @@ class mix_texture extends Canvas3D {
         this.mouse_interction_camera.setup(webGL_data_container.canvas);
 
         this.mix_value = 0.0;
+        this.mix_value_offset = 0.01;
         // パラメータ調整GUI作成
         this.parame_pane = null;
         {
@@ -20,7 +21,7 @@ class mix_texture extends Canvas3D {
                 this.parame_pane = new Tweakpane({
                     container: pane_element
                 });
-                this.parame_pane.addInput({ mix: this.mix_value }, 'mix', { min: 0, max: 1.0 })
+                this.parame_pane.addInput({mix: this.mix_value}, 'mix', {min: 0, max: 1.0})
                     .on('change', (v) => {
                         this.mix_value = v;
                     });
@@ -164,7 +165,8 @@ class mix_texture extends Canvas3D {
                             location.name,
                             location.stride_count,
                             location.datas);
-                    };
+                    }
+                    ;
 
                     // idoを作成
                     shader_frame.createIndexBufferObject('index', this.ido_buffer_data);
@@ -242,6 +244,15 @@ class mix_texture extends Canvas3D {
         // uniformに渡す行列データを更新
         const mvp_mtx_uniform_data = this.uniform_datas.mvp_mtx;
         mvp_mtx_uniform_data.datas = this.mat.m;
+
+        this.mix_value += this.mix_value_offset;
+        if (this.mix_value >= 1.0) {
+            this.mix_value_offset = -this.mix_value_offset;
+            this.mix_value = 1.0;
+        } else if (this.mix_value <= 0.0) {
+            this.mix_value = 0.0;
+            this.mix_value_offset = -this.mix_value_offset;
+        }
     }
 
     /**
