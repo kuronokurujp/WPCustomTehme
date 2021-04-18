@@ -20,6 +20,11 @@ get_header();
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
 	<div class="container">
 		<div class="btn-group btn-group-toggle" data-toggle="buttons">
+
+			<a href="https://github.com/tbpgr" target="_blank" title="tbpgrのGitHubページを開く">
+				<i class="fa fa-github-square" style="color: black;font-size:2em"></i>
+			</a>
+
 			<label class="btn btn-info active">
 				<input type="radio" name="options" id="js_back_on_view_button" autocomplete="off">Back View On
 			</label>
@@ -101,7 +106,7 @@ get_header();
 						<div class="col-lg-6 order-lg-1">
 							<div class="p-5">
 								<h1 class="lead"><?php the_title(); ?></h2>
-								<p><?php the_content(); ?></p>
+									<p><?php the_content(); ?></p>
 							</div>
 						</div>
 
